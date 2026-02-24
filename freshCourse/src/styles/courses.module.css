@@ -1,0 +1,54 @@
+.container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+}
+
+.sidebar {
+  width: 300px;
+  border-right: 1px solid #ccc;
+  padding-right: 20px;
+}
+
+.chapter {
+  margin-bottom: 15px;
+}
+
+.chapter-title {
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.arrow {
+  transition: transform 0.1s;
+}
+
+.open .arrow {
+  transform: rotate(180deg);
+}
+
+.chapter-list {
+  list-style-type:initial ;
+  padding-left: 20px;
+  margin-top: 5px;
+}
+
+.topic {
+  cursor: pointer;
+  margin-bottom: 5px;
+}
+
+.topic:hover {
+  text-decoration: underline;
+}
+
+.content {
+  flex: 1;
+  padding-left: 20px;
+}
+
+
+
