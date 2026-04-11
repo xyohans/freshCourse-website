@@ -5,6 +5,7 @@ import Courses from "./pages/Course"
 import Exams from "./pages/Exams"
 import courses from "./Courses/course-name"
 import Dashboard from "./pages/Dashboard"
+import Verify_email from "./pages/Verify"
 
 
 function App() {
@@ -21,6 +22,8 @@ function App() {
         {courses.map(course => (
           <Route key={course.key} path={course.path} element={<course.component />} />
         ))}
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/verification" element ={<Verify_email />} />
         <Route path="/exams" element={<Exams />} />
       </Routes>
     </Router>
