@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+
+    <form>
+        name:<input type="text" name="name" class="name">
+        email:<input type="text" name="email" class="email">
+        password: <input type="text" name="pass" class="pass">
+        <button type="button" name="signup-btn" class="signup btn" onclick="signup()">sign up</button>
+        <button type="button" name="read-btn" class="read btn" onclick="handleRead()">read</button>
+        <button type="button" name="update-btn" class="update btn" onclick="handleUpdate()">update</button>
+        <button type="button" name="delete-btn" class="delete btn" onclick="handleDelete()">delete</button>
+    </form>
+    <p class="message"></p>
+    <p class="uname"></p>
+    <p class="uemail"></p>
+    <script>
+
+        const uname = document.querySelector('.uname');
+        const uemail = document.querySelector('.uemail')
+
+        async function signup() {
+            const name = document.querySelector('.name');
+            const email = document.querySelector('.email');
+            const pass = document.querySelector('.pass');
+
+            try {
+                const res = await fetch('/signup', {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name: name.value, email: email.value, pass: pass.value })
+                })
+                const data = await res.json();
+                document.querySelector('.message').textContent = data.message;
+                uname.textContent = data.result
+            } catch (err) {
+                console.log(err)
+                document.querySelector('.message').textContent = `Oops error occured: ${err}`
+            }
+        }
+
+
+        //read user data
+        async function handleRead() {
+
+            try {
+                const email = document.querySelector('.email');
+                const res = await fetch('/read', {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: email.value })
+                })
+                const data = await res.json();
+                document.querySelector('.message').textContent = data.message;
+                console.log(data.result[0]);
+                uname.textContent = data.result[0].name;
+                uemail.textContent = data.result[0].email;
+
+            } catch (err) {
+                console.log(err)
+                document.querySelector('.message').textContent = `Oops error occured ${err}`
+            }
+
+        }
+
+
+        //update user
+        async function handleUpdate() {
+            const name = document.querySelector('.name');
+            const email = document.querySelector('.email');
+            // const pass = document.querySelector('.pass');
+            const res = await fetch('/update', {
+                method: 'PUT',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: name.value, email: email.value })
+            })
+            const data =await res.json();
+            document.querySelector('.message').textContent = data.message;
+
+        }
+
+
+        //delete user
+        async function handleDelete() {
+            const email = document.querySelector('.email');
+            // const pass = document.querySelector('.pass');
+            const res = await fetch('/delete', {
+                method: 'delete',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: email.value})
+            })
+            const data =await res.json();
+            document.querySelector('.message').textContent = data.message;
+        }
+
+    </script>
+</body>
+
+</html>
