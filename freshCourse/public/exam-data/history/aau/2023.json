@@ -1,0 +1,42 @@
+[
+  {
+    "number": 1,
+    "type": "multiple_choice",
+    "text": "Which city is the capital of Ethiopia?",
+    "options": ["Dire Dawa", "Addis Ababa", "Gondar", "Hawassa"],
+    "answer": "B",
+    "explanation": "Addis Ababa has been the capital of Ethiopia since it was founded by Emperor Menelik II in 1886."
+  },
+  {
+    "number": 2,
+    "type": "true_false",
+    "text": "The Battle of Adwa took place in 1896.",
+    "options": ["True", "False"],
+    "answer": "True",
+    "explanation": "The Battle of Adwa was fought on March 1 1896 where Ethiopia defeated the Italian army and remained independent."
+  },
+  {
+    "number": 3,
+    "type": "fill_blank",
+    "text": "The ancient kingdom that preceded the Aksumite Empire was known as ___.",
+    "options": [],
+    "answer": "Damt",
+    "explanation": "The Damt kingdom was one of the earliest states in the Ethiopian region before the rise of Aksum."
+  },
+  {
+    "number": 4,
+    "type": "short_answer",
+    "text": "Briefly explain the significance of the Battle of Adwa for Africa.",
+    "options": [],
+    "answer": "The Battle of Adwa was significant because it was the first time an African nation defeated a European colonial power inspiring independence movements across Africa.",
+    "explanation": "Look for: defeat of Italian forces, Ethiopian independence preserved, inspiration for pan-Africanism."
+  },
+  {
+    "number": 5,
+    "type": "multiple_choice",
+    "text": "Who was the Emperor of Ethiopia during the Battle of Adwa?",
+    "options": ["Emperor Tewodros II", "Emperor Yohannes IV", "Emperor Menelik II", "Emperor Haile Selassie"],
+    "answer": "C",
+    "explanation": "Emperor Menelik II led Ethiopian forces to victory at the Battle of Adwa in 1896."
+  }
+]

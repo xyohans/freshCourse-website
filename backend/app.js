@@ -1,27 +1,32 @@
-//CRUD operation 
+
 const express = require('express');
 const app = express();
+const cors = require('cors')
 
 
-const signup = require('./signup');
-const read = require('./read')
-const update = require('./update');
-const deleteUser = require('./delete')
+const courses= require('./courses/fetch_courses')
+const exams = require('./exams/fetch_exams')
+const progress = require('./progress/progress');
+const dashboard = require('./progress/dashboard');
 
 
-
-
-app.use(express.static('./static'));
-app.use(express.urlencoded({
-    extended: false
+app.use(cors({
+    origin: 'http://localhost:5173'
 }))
-app.use(express.json());
+app.use(express.json())
+
+app.use('/courses', courses)
+app.use('/exams',exams)
+app.use('/progress', progress);
+app.use('/dashboard', dashboard);
 
 
-//CRUD OPS
-app.use('/signup', signup);
-app.use('/read' , read);
-app.use('/update' , update);
-app.use('/delete' , deleteUser)
 
-app.listen(5173, () => console.log("server is running...."))
+app.listen(5000 ,()=>{
+    console.log('server is live')
+})
+
+
+
+
+

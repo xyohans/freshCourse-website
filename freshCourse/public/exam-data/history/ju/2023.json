@@ -1,0 +1,42 @@
+[
+  {
+    "number": 1,
+    "type": "multiple_choice",
+    "text": "Where did the Aksumite Empire originate?",
+    "options": ["Western Ethiopia", "Northern Ethiopia", "Southern Ethiopia", "Eastern Ethiopia"],
+    "answer": "B",
+    "explanation": "The Aksumite Empire originated in the northern highlands of Ethiopia in the Tigray region."
+  },
+  {
+    "number": 2,
+    "type": "true_false",
+    "text": "Emperor Haile Selassie was the last emperor of Ethiopia.",
+    "options": ["True", "False"],
+    "answer": "True",
+    "explanation": "Emperor Haile Selassie ruled from 1930 until he was deposed by the Derg in 1974 making him the last emperor of Ethiopia."
+  },
+  {
+    "number": 3,
+    "type": "fill_blank",
+    "text": "The first capital of modern Ethiopia established by Emperor Menelik II was ___.",
+    "options": [],
+    "answer": "Addis Ababa",
+    "explanation": "Emperor Menelik II founded Addis Ababa in 1886 and made it the capital of Ethiopia."
+  },
+  {
+    "number": 4,
+    "type": "multiple_choice",
+    "text": "What does the term Derg mean in Amharic?",
+    "options": ["Council", "Army", "Committee", "Revolution"],
+    "answer": "C",
+    "explanation": "Derg means committee in Amharic referring to the Coordinating Committee of the Armed Forces that ruled Ethiopia from 1974 to 1991."
+  },
+  {
+    "number": 5,
+    "type": "short_answer",
+    "text": "Describe the main features of the Aksumite civilization.",
+    "options": [],
+    "answer": "The Aksumite civilization was known for its trade networks monumental obelisks unique Geez writing system coinage and early adoption of Christianity as a state religion.",
+    "explanation": "Look for: trade, obelisks, Geez script, Christianity, coinage."
+  }
+]

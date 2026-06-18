@@ -1,0 +1,42 @@
+[
+  {
+    "number": 1,
+    "type": "multiple_choice",
+    "text": "The Aksumite Empire was known for its use of which writing script?",
+    "options": ["Arabic", "Latin", "Geez", "Amharic"],
+    "answer": "C",
+    "explanation": "The Aksumite Empire developed and used the Geez script which is still used in the Ethiopian Orthodox Church today."
+  },
+  {
+    "number": 2,
+    "type": "true_false",
+    "text": "Ethiopia was colonized by Britain during the Scramble for Africa.",
+    "options": ["True", "False"],
+    "answer": "False",
+    "explanation": "Ethiopia was never colonized. It remained independent throughout the colonial period defeating Italy at the Battle of Adwa in 1896."
+  },
+  {
+    "number": 3,
+    "type": "fill_blank",
+    "text": "The Derg regime came to power in Ethiopia in the year ___.",
+    "options": [],
+    "answer": "1974",
+    "explanation": "The Derg a military junta overthrew Emperor Haile Selassie in 1974 and ruled Ethiopia until 1991."
+  },
+  {
+    "number": 4,
+    "type": "short_answer",
+    "text": "What were the main causes of the fall of the Aksumite Empire?",
+    "options": [],
+    "answer": "Main causes included the rise of Islam which disrupted trade routes environmental degradation internal political instability and shifting trade patterns away from the Red Sea.",
+    "explanation": "Look for: trade disruption, Islamic expansion, environmental factors, political decline."
+  },
+  {
+    "number": 5,
+    "type": "multiple_choice",
+    "text": "Which of the following best describes the Neolithic Revolution?",
+    "options": ["The invention of writing systems", "The transition from hunting to farming", "The rise of city states", "The discovery of metal tools"],
+    "answer": "B",
+    "explanation": "The Neolithic Revolution refers to the transition from nomadic hunter-gatherer lifestyles to settled agricultural communities."
+  }
+]

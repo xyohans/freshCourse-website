@@ -1,0 +1,98 @@
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  height: 64px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e5e0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.brandSection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.brandName {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1a1a1a;
+  letter-spacing: -0.2px;
+}
+
+.links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.link {
+  font-size: 14px;
+  font-weight: 500;
+  color: #4a4a45;
+  text-decoration: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.link:hover {
+  background: #f3f3ef;
+  color: #1a1a1a;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 12px;
+}
+
+.loginBtn {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a1a;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #d8d8d2;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.loginBtn:hover {
+  background: #f3f3ef;
+  border-color: #c0c0b8;
+}
+
+.signupBtn {
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  text-decoration: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  background: #1a1a1a;
+  transition: background 0.15s;
+}
+
+.signupBtn:hover {
+  background: #333;
+}
+
+@media (max-width: 768px) {
+  .links {
+    display: none;
+  }
+}

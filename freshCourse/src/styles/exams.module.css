@@ -1,0 +1,508 @@
+/* shared with Exams.jsx - same card grid look as courses */
+.page {
+  padding: 32px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 24px;
+}
+
+.pageTitle {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.pageSub {
+  font-size: 14px;
+  color: #6b6b66;
+}
+
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.filterLabel {
+  font-size: 13px;
+  color: #6b6b66;
+  margin-right: 4px;
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 20px;
+  border: 1px solid #d8d8d2;
+  background: #ffffff;
+  color: #4a4a45;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.filterChip:hover {
+  background: #f3f3ef;
+}
+
+.filterChip input {
+  display: none;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e5e5e0;
+  border-radius: 14px;
+  padding: 18px;
+  transition: border-color 0.15s;
+}
+
+.card:hover {
+  border-color: #c0c0b8;
+}
+
+.streamTag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.tagNatural { background: #e1f5ee; color: #085041; }
+.tagSocial  { background: #e6f1fb; color: #0c447c; }
+.tagBoth    { background: #eeedfe; color: #3c3489; }
+
+.courseTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 14px;
+}
+
+.viewBtn {
+  width: 100%;
+  padding: 9px 0;
+  font-size: 13px;
+  font-weight: 600;
+  background: #1a1a1a;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.viewBtn:hover {
+  background: #333;
+}
+
+.loadingState {
+  text-align: center;
+  padding: 60px 0;
+  color: #6b6b66;
+  font-size: 14px;
+}
+
+/* ── ExamViewer layout ──────────────────────────────────── */
+
+.viewerContainer {
+  display: flex;
+  min-height: calc(100vh - 64px);
+  background: #fafaf7;
+}
+
+.viewerSidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-right: 1px solid #e5e5e0;
+  padding: 20px;
+}
+
+.backBtn {
+  font-size: 13px;
+  color: #6b6b66;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.backBtn:hover {
+  color: #1a1a1a;
+}
+
+.filterSection {
+  margin-bottom: 24px;
+}
+
+.filterSectionLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b6b66;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+
+.filterPill {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 13px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: #4a4a45;
+  cursor: pointer;
+  margin-bottom: 2px;
+  transition: background 0.15s;
+}
+
+.filterPill:hover {
+  background: #f3f3ef;
+}
+
+.filterPillActive {
+  background: #f0f0ea;
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.viewerMain {
+  flex: 1;
+  padding: 28px 36px;
+}
+
+.resultsLabel {
+  font-size: 13px;
+  color: #6b6b66;
+  margin-bottom: 16px;
+}
+
+.examCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid #e5e5e0;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 10px;
+}
+
+.examCardLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.examUni {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.examMeta {
+  font-size: 12px;
+  color: #6b6b66;
+}
+
+.startExamBtn {
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #1d9e75;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.startExamBtn:hover {
+  background: #178563;
+}
+
+.noResults {
+  font-size: 14px;
+  color: #6b6b66;
+  padding: 24px 0;
+  text-align: center;
+}
+
+/* ── ExamRunner layout ──────────────────────────────────── */
+
+.runnerPage {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px;
+}
+
+.runnerHeader {
+  font-size: 13px;
+  color: #6b6b66;
+  margin-bottom: 16px;
+}
+
+.runnerTitle {
+  font-size: 22px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+.runnerSub {
+  font-size: 14px;
+  color: #6b6b66;
+  margin-bottom: 24px;
+}
+
+.revealLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 14px;
+}
+
+.revealOption {
+  border: 1px solid #d8d8d2;
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.revealOption:hover {
+  background: #f7f7f3;
+}
+
+.revealOptionSelected {
+  border-color: #1a1a1a;
+  border-width: 2px;
+  background: #f7f7f3;
+}
+
+.revealOptionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 2px;
+}
+
+.revealOptionSub {
+  font-size: 12px;
+  color: #6b6b66;
+}
+
+.errorText {
+  color: #a32d2d;
+  font-size: 13px;
+  margin: 12px 0;
+}
+
+.primaryBtn {
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #1a1a1a;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.primaryBtn:hover:not(:disabled) {
+  background: #333;
+}
+
+.primaryBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.secondaryBtn {
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #ffffff;
+  color: #1a1a1a;
+  border: 1px solid #d8d8d2;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 12px;
+  margin-right: 10px;
+  transition: background 0.15s;
+}
+
+.secondaryBtn:hover {
+  background: #f3f3ef;
+}
+
+.resultScore {
+  font-size: 42px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.resultMeta {
+  font-size: 14px;
+  color: #6b6b66;
+  margin: 6px 0 4px;
+}
+
+.resultSummary {
+  font-size: 14px;
+  color: #4a4a45;
+  margin-bottom: 24px;
+}
+
+.questionBlock {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #efefe9;
+}
+
+.questionNumber {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b6b66;
+  margin-bottom: 6px;
+}
+
+.questionText {
+  font-size: 15px;
+  color: #1a1a1a;
+  margin-bottom: 14px;
+  line-height: 1.6;
+}
+
+.optionBtn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: #ffffff;
+  border: 1px solid #d8d8d2;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.optionBtn:hover:not(:disabled) {
+  border-color: #c0c0b8;
+}
+
+.optionSelected {
+  background: #e6f1fb;
+  border-color: #185fa5;
+}
+
+.optionCorrect {
+  background: #e1f5ee;
+  border-color: #0f6e56;
+  color: #085041;
+}
+
+.optionWrong {
+  background: #fcebeb;
+  border-color: #a32d2d;
+  color: #a32d2d;
+}
+
+.optionReview {
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.textInput {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #d8d8d2;
+  border-radius: 8px;
+}
+
+.feedbackBox {
+  background: #f3f3ef;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 10px;
+}
+
+.feedbackCorrect {
+  color: #0f6e56;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.feedbackWrong {
+  color: #a32d2d;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.explanationText {
+  font-size: 13px;
+  color: #4a4a45;
+  line-height: 1.6;
+}
+
+.answerReview {
+  margin-bottom: 8px;
+}
+
+.answerReviewLabel {
+  font-size: 13px;
+  color: #4a4a45;
+}
+
+.answerCorrectText {
+  color: #0f6e56;
+  font-weight: 600;
+}
+
+.answerWrongText {
+  color: #a32d2d;
+  font-weight: 600;
+}
+
+.answeredCount {
+  font-size: 13px;
+  color: #6b6b66;
+  margin-bottom: 24px;
+}
