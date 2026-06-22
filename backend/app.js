@@ -8,6 +8,7 @@ const courses= require('./courses/fetch_courses')
 const exams = require('./exams/fetch_exams')
 const progress = require('./progress/progress');
 const dashboard = require('./progress/dashboard');
+const auth = require('./auth/auth')
 
 
 

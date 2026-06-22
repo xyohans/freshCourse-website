@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import styles from "../styles/exams.module.css";
+import { useUser } from "../context/AuthContext";
 
 function ExamRunner() {
   const { courseKey, paperId } = useParams();
@@ -18,6 +19,7 @@ function ExamRunner() {
   const [submitting, setSubmitting] = useState(false);
   const [contentLoading, setContentLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { user } = useUser();
 
   useEffect(() => {
     fetch(`/api/exams/${courseKey}/${paperId}`)
@@ -43,7 +45,7 @@ function ExamRunner() {
       const res = await fetch('/api/exams/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: 1, paperId: paper.id, revealMode })
+        body: JSON.stringify({ userId: user?.id, paperId: paper.id, revealMode })
       });
 
       if (!res.ok) throw new Error("Failed to start exam");

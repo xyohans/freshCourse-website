@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../styles/dashboard.module.css";
+import { useUser } from "../context/AuthContext"; 
 
 function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -8,10 +9,13 @@ function Dashboard() {
   const [examResults, setExamResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { user, userLoading } = useUser();
+  const userId = user?.id;
 
-  const userId = 1; // replace with real user from auth context later
+
 
   useEffect(() => {
+    if(!userId) return;
     fetch(`/api/dashboard?userId=${userId}`)
       .then(res => res.json())
       .then(data => {

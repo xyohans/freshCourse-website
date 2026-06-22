@@ -41,10 +41,10 @@ function Nav() {
       </Link>
 
       <div className={styles.links}>
+        {!user && <Link to="/" className={styles.link}>Home</Link>}
         <Link to="/courses" className={styles.link}>Courses</Link>
         <Link to="/exams" className={styles.link}>Exams</Link>
         {user && <Link to="/dashboard" className={styles.link}>Dashboard</Link>}
-        {!user && <Link to="/" className={styles.link}>Home</Link>}
         {!user && <Link to="/about" className={styles.link}>About</Link>}
         {!user && <Link to="/contact" className={styles.link}>Contact</Link>}
       </div>

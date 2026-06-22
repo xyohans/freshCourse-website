@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import styles from "../styles/courses.module.css";
+import { useUser } from "../context/AuthContext"; 
 
 function CourseViewer() {
   const { courseKey } = useParams();
@@ -15,7 +16,8 @@ function CourseViewer() {
   const [loading, setLoading] = useState(true);
   const [completedIds, setCompletedIds] = useState([]);
 
-  const userId = 1; // replace with real user from auth context later
+  const { user, userLoading } = useUser();
+  const userId = user?.id;
 
   //fetch courses chapter and subtopics
   useEffect(() => {
