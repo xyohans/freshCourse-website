@@ -135,4 +135,4 @@ This project is for educational purposes. License to be determined.
 
 ## Author
 
-Built by Yohannis Tadesse, a software engineering student at Debre Markos University.
+Built by Yohannis Abrham, a software engineering student at Debre Markos University.
