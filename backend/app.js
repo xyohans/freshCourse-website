@@ -1,4 +1,4 @@
-
+require('dotenv').config();
 const express = require('express');
 const app = express();
 const cors = require('cors')
@@ -10,6 +10,7 @@ const progress = require('./progress/progress');
 const dashboard = require('./progress/dashboard');
 
 
+
 app.use(cors({
     origin: 'http://localhost:5173'
 }))
@@ -19,7 +20,6 @@ app.use('/courses', courses)
 app.use('/exams',exams)
 app.use('/progress', progress);
 app.use('/dashboard', dashboard);
-
 
 
 app.listen(5000 ,()=>{

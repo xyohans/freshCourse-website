@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db_connect');
+const supabase = require('../db_connect'); // Your configured Supabase client
 
 router.get('/', async (req, res) => {
   try {
@@ -9,72 +9,117 @@ router.get('/', async (req, res) => {
     if (!userId)
       return res.status(400).json({ error: 'userId is required' });
 
-    // 1. courses started and completed
-    const [[courseStats]] = await db.query(`
-      SELECT
-        COUNT(*) AS coursesStarted,
-        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS coursesCompleted
-      FROM user_course_progress
-      WHERE user_id = ?
-    `, [userId]);
+    // Execute all 4 queries concurrently using Promise.all to decrease response times
+    const [
+      courseStatsResult,
+      examStatsResult,
+      coursesResult,
+      examResultsRawResult
+    ] = await Promise.all([
+      
+      // 1. courses started and completed
+      supabase
+        .from('user_course_progress')
+        .select('status')
+        .eq('user_id', userId),
 
-    // 2. exams taken and average score
-    const [[examStats]] = await db.query(`
-      SELECT
-        COUNT(*) AS examsTaken,
-        ROUND(AVG(ea.score / ep.total_questions * 100)) AS averageScore
-      FROM exam_attempts ea
-      JOIN exam_papers ep ON ea.exam_paper_id = ep.id
-      WHERE ea.user_id = ? AND ea.submitted_at IS NOT NULL
-    `, [userId]);
+      // 2. exams taken and score calculations
+      supabase
+        .from('exam_attempts')
+        .select(`
+          score,
+          exam_papers ( total_questions )
+        `)
+        .eq('user_id', userId)
+        .not('submitted_at', 'is', null),
 
-    // 3. courses in progress for "Continue learning"
-    const [courses] = await db.query(`
-      SELECT
-        c.id, c.title, c.route_path,
-        ROUND(ucp.completed_subtopics / ucp.total_subtopics * 100) AS progress
-      FROM user_course_progress ucp
-      JOIN courses c ON ucp.course_id = c.id
-      WHERE ucp.user_id = ?
-      ORDER BY ucp.last_accessed DESC
-      LIMIT 5
-    `, [userId]);
+      // 3. courses in progress for "Continue learning"
+      supabase
+        .from('user_course_progress')
+        .select(`
+          completed_subtopics,
+          total_subtopics,
+          courses ( id, title, route_path )
+        `)
+        .eq('user_id', userId)
+        .order('last_accessed', { ascending: false })
+        .limit(5),
 
-    // 4. recent exam results
-    const [examResultsRaw] = await db.query(`
-      SELECT
-        ea.id AS attemptId,
-        ea.score,
-        ea.submitted_at,
-        ep.total_questions,
-        ep.year,
-        c.title AS courseTitle,
-        u.abbreviation AS universityAbbr
-      FROM exam_attempts ea
-      JOIN exam_papers ep        ON ea.exam_paper_id = ep.id
-      JOIN university_courses uc ON ep.university_course_id = uc.id
-      JOIN universities u        ON uc.university_id = u.id
-      JOIN courses c             ON uc.course_id = c.id
-      WHERE ea.user_id = ? AND ea.submitted_at IS NOT NULL
-      ORDER BY ea.submitted_at DESC
-      LIMIT 5
-    `, [userId]);
+      // 4. recent exam results
+      supabase
+        .from('exam_attempts')
+        .select(`
+          id, score, submitted_at,
+          exam_papers (
+            total_questions, year,
+            university_courses (
+              universities ( abbreviation ),
+              courses ( title )
+            )
+          )
+        `)
+        .eq('user_id', userId)
+        .not('submitted_at', 'is', null)
+        .order('submitted_at', { ascending: false })
+        .limit(5)
+    ]);
 
-    const examResults = examResultsRaw.map(r => ({
-      attemptId: r.attemptId,
-      courseTitle: r.courseTitle,
-      universityAbbr: r.universityAbbr,
-      year: r.year,
-      percent: Math.round((r.score / r.total_questions) * 100),
-      timeAgo: timeAgoFormat(r.submitted_at)
-    }));
+    // Check for errors in any of the executions
+    if (courseStatsResult.error) throw courseStatsResult.error;
+    if (examStatsResult.error) throw examStatsResult.error;
+    if (coursesResult.error) throw coursesResult.error;
+    if (examResultsRawResult.error) throw examResultsRawResult.error;
 
+    // --- PROCESS 1: Course Statistics ---
+    const rawProgress = courseStatsResult.data;
+    const coursesStarted = rawProgress.length;
+    const coursesCompleted = rawProgress.filter(c => c.status === 'completed').length;
+
+    // --- PROCESS 2: Exam Statistics ---
+    const rawExams = examStatsResult.data;
+    const examsTaken = rawExams.length;
+    
+    let totalScorePercentage = 0;
+    rawExams.forEach(ea => {
+      const totalQ = ea.exam_papers?.total_questions || 0;
+      if (totalQ > 0) {
+        totalScorePercentage += (ea.score / totalQ) * 100;
+      }
+    });
+    const averageScore = examsTaken > 0 ? Math.round(totalScorePercentage / examsTaken) : 0;
+
+    // --- PROCESS 3: Format Continue Learning Courses ---
+    const courses = coursesResult.data.map(ucp => {
+      const completed = ucp.completed_subtopics || 0;
+      const total = ucp.total_subtopics || 0;
+      return {
+        id: ucp.courses?.id,
+        title: ucp.courses?.title,
+        route_path: ucp.courses?.route_path,
+        progress: total > 0 ? Math.round((completed / total) * 100) : 0
+      };
+    });
+
+    // --- PROCESS 4: Format Recent Exam Results ---
+    const examResults = examResultsRawResult.data.map(r => {
+      const totalQuestions = r.exam_papers?.total_questions || 0;
+      return {
+        attemptId: r.id,
+        courseTitle: r.exam_papers?.university_courses?.courses?.title,
+        universityAbbr: r.exam_papers?.university_courses?.universities?.abbreviation,
+        year: r.exam_papers?.year,
+        percent: totalQuestions > 0 ? Math.round((r.score / totalQuestions) * 100) : 0,
+        timeAgo: timeAgoFormat(r.submitted_at)
+      };
+    });
+
+    // --- Final Combined Output Response ---
     res.json({
       stats: {
-        coursesStarted: courseStats.coursesStarted || 0,
-        coursesCompleted: courseStats.coursesCompleted || 0,
-        examsTaken: examStats.examsTaken || 0,
-        averageScore: examStats.averageScore || 0
+        coursesStarted,
+        coursesCompleted,
+        examsTaken,
+        averageScore
       },
       courses,
       examResults
@@ -86,6 +131,7 @@ router.get('/', async (req, res) => {
 });
 
 function timeAgoFormat(date) {
+  if (!date) return '';
   const seconds = Math.floor((new Date() - new Date(date)) / 1000);
   const days = Math.floor(seconds / 86400);
   if (days === 0) return 'Today';

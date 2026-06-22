@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db_connect');
+const supabase = require('../db_connect'); // Your configured Supabase client
 
 // POST /api/progress/mark
 // called when student marks a subtopic complete
@@ -11,39 +11,67 @@ router.post('/mark', async (req, res) => {
     if (!userId || !subtopicId || !courseId)
       return res.status(400).json({ error: 'userId, subtopicId and courseId are required' });
 
-    // 1. mark the subtopic complete
-    await db.query(`
-      INSERT INTO user_subtopic_progress (user_id, subtopic_id, completed, completed_at)
-      VALUES (?, ?, true, NOW())
-      ON DUPLICATE KEY UPDATE completed = true, completed_at = NOW()
-    `, [userId, subtopicId]);
+    // 1. Mark the subtopic complete (Postgres Upsert using unique constraints)
+    const { error: upsertSubtopicError } = await supabase
+      .from('user_subtopic_progress')
+      .upsert({
+        user_id: userId,
+        subtopic_id: subtopicId,
+        completed: true,
+        completed_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id,subtopic_id' // Requires unique constraint on these columns
+      });
 
-    // 2. get total subtopics for this course
-    const [[{ total }]] = await db.query(`
-      SELECT COUNT(*) AS total FROM subtopics s
-      JOIN chapters c ON s.chapter_id = c.id
-      WHERE c.course_id = ?
-    `, [courseId]);
+    if (upsertSubtopicError) throw upsertSubtopicError;
 
-    // 3. get completed subtopics for this course
-    const [[{ completed }]] = await db.query(`
-      SELECT COUNT(*) AS completed FROM user_subtopic_progress usp
-      JOIN subtopics s ON usp.subtopic_id = s.id
-      JOIN chapters c ON s.chapter_id = c.id
-      WHERE usp.user_id = ? AND c.course_id = ? AND usp.completed = true
-    `, [userId, courseId]);
+    // Execute counts concurrently to minimize execution blockages
+    const [totalRes, completedRes] = await Promise.all([
+      // 2. Get total subtopics for this course
+      supabase
+        .from('subtopics')
+        .select(`
+          id,
+          chapters!inner ( course_id )
+        `, { count: 'exact', head: true })
+        .eq('chapters.course_id', courseId),
 
+      // 3. Get completed subtopics for this course by this user
+      supabase
+        .from('user_subtopic_progress')
+        .select(`
+          subtopic_id,
+          subtopics!inner (
+            chapters!inner ( course_id )
+          )
+        `, { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('completed', true)
+        .eq('subtopics.chapters.course_id', courseId)
+    ]);
+
+    if (totalRes.error) throw totalRes.error;
+    if (completedRes.error) throw completedRes.error;
+
+    const total = totalRes.count || 0;
+    const completed = completedRes.count || 0;
     const status = completed === total ? 'completed' : 'in_progress';
 
-    // 4. update or insert the course progress summary
-    await db.query(`
-      INSERT INTO user_course_progress (user_id, course_id, completed_subtopics, total_subtopics, status)
-      VALUES (?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE
-        completed_subtopics = ?,
-        total_subtopics = ?,
-        status = ?
-    `, [userId, courseId, completed, total, status, completed, total, status]);
+    // 4. Update or insert the course progress summary (Upsert pattern)
+    const { error: upsertCourseError } = await supabase
+      .from('user_course_progress')
+      .upsert({
+        user_id: userId,
+        course_id: courseId,
+        completed_subtopics: completed,
+        total_subtopics: total,
+        status: status,
+        last_accessed: new Date().toISOString()
+      }, {
+        onConflict: 'user_id,course_id' // Requires unique constraint on these columns
+      });
+
+    if (upsertCourseError) throw upsertCourseError;
 
     res.json({ success: true, completed, total, status });
   } catch (err) {
@@ -52,23 +80,37 @@ router.post('/mark', async (req, res) => {
   }
 });
 
-// GET /api/progress/:courseKey?userId=1
+// GET /api/progress/:courseKey?userId=...
 // used by CourseReader to know which subtopics are already completed
 router.get('/:courseKey', async (req, res) => {
   try {
     const { userId } = req.query;
     const { courseKey } = req.params;
 
-    const [rows] = await db.query(`
-      SELECT usp.subtopic_id
-      FROM user_subtopic_progress usp
-      JOIN subtopics s ON usp.subtopic_id = s.id
-      JOIN chapters c ON s.chapter_id = c.id
-      JOIN courses co ON c.course_id = co.id
-      WHERE co.route_key = ? AND usp.user_id = ? AND usp.completed = true
-    `, [courseKey, userId]);
+    if (!userId)
+      return res.status(400).json({ error: 'userId is required' });
 
-    res.json(rows.map(r => r.subtopic_id));
+    // Join paths downward using !inner filters to target our criteria
+    const { data, error } = await supabase
+      .from('user_subtopic_progress')
+      .select(`
+        subtopic_id,
+        subtopics!inner (
+          chapters!inner (
+            courses!inner ( route_key )
+          )
+        )
+      `)
+      .eq('user_id', userId)
+      .eq('completed', true)
+      .eq('subtopics.chapters.courses.route_key', courseKey);
+
+    if (error) throw error;
+
+    // Map the object array back to a flat array of IDs matching your old output
+    const subtopicIds = data.map(r => r.subtopic_id);
+
+    res.json(subtopicIds);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch progress' });

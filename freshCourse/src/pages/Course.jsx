@@ -1,17 +1,19 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../styles/courses.module.css";
+import { useUser } from "../context/AuthContext";
 
 function Course() {
   const [courses, setCourses] = useState([]);
   const [filter, setFilter] = useState({ natural: false, social: false });
   const [loading, setLoading] = useState(true);
+  const { user, userLoading } = useUser();
+  const userId = user?.id;
   const navigate = useNavigate();
 
-  const isLoggedIn = !!localStorage.getItem("token");
-  const userId = 1;
 
   useEffect(() => {
+    if(!userId) return;
     fetch(`/api/courses?userId=${userId}`)
       .then(res => res.json())
       .then(data => {
@@ -22,7 +24,7 @@ function Course() {
         console.error(err);
         setLoading(false);
       });
-  }, []);
+  }, [userId]);
 
   function handleFilters(e) {
     const { name, checked } = e.target;
@@ -43,7 +45,7 @@ function Course() {
     return filter[course.stream];
   });
 
-  if (loading) return <div className={styles.loadingState}>Loading courses...</div>;
+  if (userLoading || loading) return <div className={styles.loadingState}>Loading courses...</div>;
 
   return (
     <div className={styles.page}>
