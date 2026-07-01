@@ -181,6 +181,45 @@
   background: #fafaf7;
 }
 
+/* ── Sidebar toggle button ─────────────────────────────── */
+
+.sidebarToggle {
+  position: fixed;
+  top: 74px;
+  left: 16px;
+  z-index: 60;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid #d8d8d2;
+  background: #ffffff;
+  color: #1a1a1a;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  transition: left 0.25s ease;
+}
+
+.sidebarToggle:hover {
+  background: #f3f3ef;
+}
+
+/* ── Backdrop (mobile only) ────────────────────────────── */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  top: 64px;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 45;
+  display: none;
+}
+
+/* ── Sidebar ────────────────────────────────────────────── */
+
 .sidebar {
   position: fixed;
   top: 64px;
@@ -193,13 +232,20 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  z-index: 50;
+  transform: translateX(0);
+  transition: transform 0.28s ease;
+}
+
+.sidebarClosed {
+  transform: translateX(-100%);
 }
 
 .sidebar h3 {
   font-size: 15px;
   font-weight: 600;
   color: #1a1a1a;
-  padding: 0 20px;
+  padding: 0 20px 0 60px; /* room for toggle button */
   margin-bottom: 8px;
 }
 
@@ -297,10 +343,17 @@
   background: #f3f3ef;
 }
 
+/* ── Content ────────────────────────────────────────────── */
+
 .content {
   margin-left: 280px;
   padding: 36px 48px;
   max-width: 760px;
+  transition: margin-left 0.28s ease;
+}
+
+.contentFull {
+  margin-left: 0;
 }
 
 .chapterLabel {
@@ -376,17 +429,42 @@
   cursor: not-allowed;
 }
 
+/* ── Mobile ─────────────────────────────────────────────── */
+
 @media (max-width: 768px) {
   .sidebar {
-    position: static;
-    width: 100%;
-    height: auto;
-    border-right: none;
-    border-bottom: 1px solid #e5e5e0;
+    width: 82%;
+    max-width: 300px;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.12);
   }
 
-  .content {
+  .backdrop {
+    display: block;
+  }
+
+  .content,
+  .contentFull {
     margin-left: 0;
     padding: 24px;
+    padding-top: 64px; /* clears the toggle button */
   }
+
+  .sidebarToggle {
+    top: 74px;
+  }
+}
+/* ── Skeleton loading ───────────────────────────────────── */
+
+.skeletonLine {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #eeeeE9 25%, #f5f5f1 37%, #eeeeE9 63%);
+  background-size: 400% 100%;
+  animation: skeletonShimmer 1.4s ease infinite;
+  margin-bottom: 10px;
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }

@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const supabase = require('../db_connect'); // Your configured Supabase client
+const supabase = require('../supabaseClient');
 
 // POST /api/progress/mark
-// called when student marks a subtopic complete
 router.post('/mark', async (req, res) => {
   try {
     const { userId, subtopicId, courseId } = req.body;
@@ -11,7 +10,7 @@ router.post('/mark', async (req, res) => {
     if (!userId || !subtopicId || !courseId)
       return res.status(400).json({ error: 'userId, subtopicId and courseId are required' });
 
-    // 1. Mark the subtopic complete (Postgres Upsert using unique constraints)
+    // 1. Mark subtopic complete
     const { error: upsertSubtopicError } = await supabase
       .from('user_subtopic_progress')
       .upsert({
@@ -20,44 +19,45 @@ router.post('/mark', async (req, res) => {
         completed: true,
         completed_at: new Date().toISOString()
       }, {
-        onConflict: 'user_id,subtopic_id' // Requires unique constraint on these columns
+        onConflict: 'user_id,subtopic_id'
       });
 
     if (upsertSubtopicError) throw upsertSubtopicError;
 
-    // Execute counts concurrently to minimize execution blockages
-    const [totalRes, completedRes] = await Promise.all([
-      // 2. Get total subtopics for this course
-      supabase
-        .from('subtopics')
-        .select(`
-          id,
-          chapters!inner ( course_id )
-        `, { count: 'exact', head: true })
-        .eq('chapters.course_id', courseId),
+    // 2. Get chapter IDs for this course
+    const { data: chapters, error: chaptersError } = await supabase
+      .from('chapters')
+      .select('id')
+      .eq('course_id', courseId);
 
-      // 3. Get completed subtopics for this course by this user
-      supabase
-        .from('user_subtopic_progress')
-        .select(`
-          subtopic_id,
-          subtopics!inner (
-            chapters!inner ( course_id )
-          )
-        `, { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('completed', true)
-        .eq('subtopics.chapters.course_id', courseId)
-    ]);
+    if (chaptersError) throw chaptersError;
 
-    if (totalRes.error) throw totalRes.error;
-    if (completedRes.error) throw completedRes.error;
+    const chapterIds = chapters.map(c => c.id);
 
-    const total = totalRes.count || 0;
-    const completed = completedRes.count || 0;
+    // 3. Get all subtopic IDs in this course
+    const { data: subtopics, error: subtopicsError } = await supabase
+      .from('subtopics')
+      .select('id')
+      .in('chapter_id', chapterIds);
+
+    if (subtopicsError) throw subtopicsError;
+
+    const subtopicIds = subtopics.map(s => s.id);
+    const total = subtopicIds.length;
+
+    // 4. Count how many this user completed
+    const { count: completed, error: completedError } = await supabase
+      .from('user_subtopic_progress')
+      .select('subtopic_id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('completed', true)
+      .in('subtopic_id', subtopicIds);
+
+    if (completedError) throw completedError;
+
     const status = completed === total ? 'completed' : 'in_progress';
 
-    // 4. Update or insert the course progress summary (Upsert pattern)
+    // 5. Upsert course progress summary
     const { error: upsertCourseError } = await supabase
       .from('user_course_progress')
       .upsert({
@@ -65,15 +65,16 @@ router.post('/mark', async (req, res) => {
         course_id: courseId,
         completed_subtopics: completed,
         total_subtopics: total,
-        status: status,
+        status,
         last_accessed: new Date().toISOString()
       }, {
-        onConflict: 'user_id,course_id' // Requires unique constraint on these columns
+        onConflict: 'user_id,course_id'
       });
 
     if (upsertCourseError) throw upsertCourseError;
 
     res.json({ success: true, completed, total, status });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to update progress' });
@@ -81,7 +82,6 @@ router.post('/mark', async (req, res) => {
 });
 
 // GET /api/progress/:courseKey?userId=...
-// used by CourseReader to know which subtopics are already completed
 router.get('/:courseKey', async (req, res) => {
   try {
     const { userId } = req.query;
@@ -90,27 +90,47 @@ router.get('/:courseKey', async (req, res) => {
     if (!userId)
       return res.status(400).json({ error: 'userId is required' });
 
-    // Join paths downward using !inner filters to target our criteria
+    // 1. Find the course by route_key
+    const { data: course, error: courseError } = await supabase
+      .from('courses')
+      .select('id')
+      .eq('route_key', courseKey)
+      .single();
+
+    if (courseError) throw courseError;
+
+    // 2. Get chapter IDs for this course
+    const { data: chapters, error: chaptersError } = await supabase
+      .from('chapters')
+      .select('id')
+      .eq('course_id', course.id);
+
+    if (chaptersError) throw chaptersError;
+
+    const chapterIds = chapters.map(c => c.id);
+
+    // 3. Get subtopic IDs in this course
+    const { data: subtopics, error: subtopicsError } = await supabase
+      .from('subtopics')
+      .select('id')
+      .in('chapter_id', chapterIds);
+
+    if (subtopicsError) throw subtopicsError;
+
+    const subtopicIds = subtopics.map(s => s.id);
+
+    // 4. Get completed ones for this user
     const { data, error } = await supabase
       .from('user_subtopic_progress')
-      .select(`
-        subtopic_id,
-        subtopics!inner (
-          chapters!inner (
-            courses!inner ( route_key )
-          )
-        )
-      `)
+      .select('subtopic_id')
       .eq('user_id', userId)
       .eq('completed', true)
-      .eq('subtopics.chapters.courses.route_key', courseKey);
+      .in('subtopic_id', subtopicIds);
 
     if (error) throw error;
 
-    // Map the object array back to a flat array of IDs matching your old output
-    const subtopicIds = data.map(r => r.subtopic_id);
+    res.json(data.map(r => r.subtopic_id));
 
-    res.json(subtopicIds);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch progress' });

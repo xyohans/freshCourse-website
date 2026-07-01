@@ -36,8 +36,38 @@ function Dashboard() {
     return styles.scoreLow;
   }
 
-  if (loading) return <div className={styles.loadingState}>Loading dashboard...</div>;
+ if (loading) {
+  return (
+    <div className={styles.page}>
+      <div className={styles.statsGrid}>
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className={styles.statCard}>
+            <div className={styles.skeletonLine} style={{ width: "80px" }} />
+            <div className={styles.skeletonLine} style={{ width: "50px", height: 22, marginTop: 8 }} />
+          </div>
+        ))}
+      </div>
 
+      <div className={styles.skeletonLine} style={{ width: "160px", height: 16, margin: "24px 0 12px" }} />
+      {[...Array(2)].map((_, i) => (
+        <div key={i} className={styles.courseRow}>
+          <div className={styles.skeletonLine} style={{ width: "35%" }} />
+          <div className={styles.skeletonLine} style={{ flex: 1, height: 6 }} />
+          <div className={styles.skeletonLine} style={{ width: "30px" }} />
+          <div className={styles.skeletonLine} style={{ width: "80px", height: 30, borderRadius: 8 }} />
+        </div>
+      ))}
+
+      <div className={styles.skeletonLine} style={{ width: "180px", height: 16, margin: "24px 0 12px" }} />
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className={styles.examRow}>
+          <div className={styles.skeletonLine} style={{ width: "50%" }} />
+          <div className={styles.skeletonLine} style={{ width: "44px", height: 24, borderRadius: 12 }} />
+        </div>
+      ))}
+    </div>
+  );
+}
   return (
     <div className={styles.page}>
       <div className={styles.statsGrid}>

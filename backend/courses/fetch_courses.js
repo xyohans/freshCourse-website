@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-// Import the Supabase client you configured earlier
-const supabase = require('../db_connect'); 
+const supabase = require('../supabaseClient'); 
 
 // GET /api/courses?userId=a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 router.get('/', async (req, res) => {

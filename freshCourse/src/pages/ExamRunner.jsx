@@ -114,7 +114,19 @@ function ExamRunner() {
     setError(null);
   }
 
-  if (loading) return <div className={styles.loadingState}>Loading...</div>;
+ if (loading) {
+  return (
+    <div className={styles.runnerPage}>
+      <div className={styles.skeletonLine} style={{ width: "60px" }} />
+      <div className={styles.skeletonLine} style={{ width: "50%", height: 22, marginTop: 16 }} />
+      <div className={styles.skeletonLine} style={{ width: "70%" }} />
+      <div className={styles.skeletonLine} style={{ width: "40%", height: 14, marginTop: 24 }} />
+      {[...Array(2)].map((_, i) => (
+        <div key={i} className={styles.skeletonLine} style={{ width: "100%", height: 60, borderRadius: 10, marginTop: 10 }} />
+      ))}
+    </div>
+  );
+}
   if (error && !examStarted) return <p className={styles.errorText}>{error}</p>;
 
   if (!examStarted) {
@@ -211,7 +223,22 @@ function ExamRunner() {
     );
   }
 
-  if (contentLoading) return <div className={styles.loadingState}>Loading questions...</div>;
+  if (contentLoading) {
+  return (
+    <div className={styles.runnerPage}>
+      <div className={styles.skeletonLine} style={{ width: "60%" }} />
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className={styles.questionBlock}>
+          <div className={styles.skeletonLine} style={{ width: "30%" }} />
+          <div className={styles.skeletonLine} style={{ width: "85%", height: 15 }} />
+          {[...Array(4)].map((_, j) => (
+            <div key={j} className={styles.skeletonLine} style={{ width: "100%", height: 36, borderRadius: 8, marginTop: 6 }} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
 
   const allAnswered = questions.every(q => answers[q.number] !== undefined);
 

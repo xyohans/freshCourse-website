@@ -14,12 +14,16 @@ function CourseViewer() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
+  const [contentLoading, setContentLoading] = useState(false); // NEW
   const [completedIds, setCompletedIds] = useState([]);
+
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => typeof window !== "undefined" ? window.innerWidth > 768 : true
+  );
 
   const { user, userLoading } = useUser();
   const userId = user?.id;
 
-  //fetch courses chapter and subtopics
   useEffect(() => {
     fetch(`/api/courses/${courseKey}`)
       .then(res => res.json())
@@ -32,7 +36,6 @@ function CourseViewer() {
       });
   }, [courseKey]);
 
-  // fetch which subtopics are already completed
   useEffect(() => {
     fetch(`/api/progress/${courseKey}?userId=${userId}`)
       .then(res => res.json())
@@ -58,6 +61,7 @@ function CourseViewer() {
     }
   }, [currentTopic]);
 
+  // UPDATED: track contentLoading around the fetch
   useEffect(() => {
     if (!currentTopic) return;
 
@@ -67,16 +71,21 @@ function CourseViewer() {
     }
 
     setContent("");
+    setContentLoading(true); // NEW
 
     fetch(currentTopic.subtopic.content_url)
       .then(res => {
         if (!res.ok) throw new Error("Not found");
         return res.text();
       })
-      .then(text => setContent(text))
+      .then(text => {
+        setContent(text);
+        setContentLoading(false); // NEW
+      })
       .catch(err => {
         console.error("Failed to fetch content:", err);
         setContent("_Content not available yet._");
+        setContentLoading(false); // NEW
       });
 
   }, [currentTopic]);
@@ -86,6 +95,10 @@ function CourseViewer() {
       t => t.subtopic.id === subtopicId && t.chapterId === chapterId
     );
     setCurrentIndex(index);
+
+    if (window.innerWidth <= 768) {
+      setSidebarOpen(false);
+    }
   }
 
   function toggleChapter(id) {
@@ -99,7 +112,7 @@ function CourseViewer() {
     if (!currentTopic || !courseId) return;
     const subtopicId = currentTopic.subtopic.id;
 
-    if (completedIds.includes(subtopicId)) return; // already done
+    if (completedIds.includes(subtopicId)) return;
 
     try {
       await fetch('/api/progress/mark', {
@@ -113,7 +126,31 @@ function CourseViewer() {
     }
   }
 
-  if (loading) return <p>Loading...</p>;
+  // UPDATED: full skeleton screen instead of plain text
+  if (loading) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.skeletonSidebar}>
+          <div className={styles.skeletonLine} style={{ width: "60%", height: 18 }} />
+          <div className={styles.skeletonLine} style={{ width: "40%" }} />
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className={styles.skeletonChapterBlock}>
+              <div className={styles.skeletonLine} style={{ width: "80%" }} />
+              <div className={styles.skeletonLine} style={{ width: "65%" }} />
+            </div>
+          ))}
+        </div>
+        <div className={styles.skeletonContent}>
+          <div className={styles.skeletonLine} style={{ width: "30%", height: 12 }} />
+          <div className={styles.skeletonLine} style={{ width: "70%", height: 26, marginTop: 10 }} />
+          <div className={styles.skeletonLine} style={{ width: "100%", marginTop: 24 }} />
+          <div className={styles.skeletonLine} style={{ width: "95%" }} />
+          <div className={styles.skeletonLine} style={{ width: "88%" }} />
+          <div className={styles.skeletonLine} style={{ width: "92%" }} />
+        </div>
+      </div>
+    );
+  }
 
   const totalTopics = allTopics.length;
   const doneCount = allTopics.filter(t => completedIds.includes(t.subtopic.id)).length;
@@ -122,7 +159,22 @@ function CourseViewer() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.sidebar}>
+      <button
+        className={styles.sidebarToggle}
+        onClick={() => setSidebarOpen(o => !o)}
+        aria-label="Toggle sidebar"
+      >
+        {sidebarOpen ? "✕" : "☰"}
+      </button>
+
+      {sidebarOpen && (
+        <div
+          className={styles.backdrop}
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <div className={`${styles.sidebar} ${!sidebarOpen ? styles.sidebarClosed : ""}`}>
         <h3>{courseName}</h3>
         <p>{doneCount}/{totalTopics} subtopics · {percent}%</p>
         <div style={{ background: "#eee", borderRadius: 999, height: 6, margin: "6px 0 14px" }}>
@@ -167,12 +219,20 @@ function CourseViewer() {
         )}
       </div>
 
-      <div className={styles.content}>
+      <div className={`${styles.content} ${!sidebarOpen ? styles.contentFull : ""}`}>
         {currentTopic ? (
           <>
             <p className={styles.chapterLabel}>{currentTopic.chapterTitle}</p>
             <h3>{currentTopic.subtopic.title}</h3>
-            <ReactMarkdown>{content}</ReactMarkdown>
+            {contentLoading ? (
+              // NEW: spinner while topic content fetches
+              <div className={styles.contentLoading}>
+                <div className={styles.spinner} />
+                <span>Loading content…</span>
+              </div>
+            ) : (
+              <ReactMarkdown>{content}</ReactMarkdown>
+            )}
           </>
         ) : (
           <p>Click on a topic to view its content</p>

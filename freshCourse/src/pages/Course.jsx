@@ -13,8 +13,11 @@ function Course() {
 
 
   useEffect(() => {
-    if(!userId) return;
-    fetch(`/api/courses?userId=${userId}`)
+    const url = userId
+      ? `/api/courses?userId=${userId}`
+      : `/api/courses`;
+
+    fetch(url)
       .then(res => res.json())
       .then(data => {
         setCourses(data);
@@ -32,10 +35,10 @@ function Course() {
   }
 
   function handleStart(course) {
-    // if (!isLoggedIn) {
-    //   navigate("/login");
-    //   return;
-    // }
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
     navigate(course.route_path);
   }
 
@@ -45,7 +48,26 @@ function Course() {
     return filter[course.stream];
   });
 
-  if (userLoading || loading) return <div className={styles.loadingState}>Loading courses...</div>;
+  if (userLoading || loading) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.header}>
+          <div className={styles.skeletonLine} style={{ width: "140px", height: 22 }} />
+          <div className={styles.skeletonLine} style={{ width: "260px", marginTop: 6 }} />
+        </div>
+        <div className={styles.grid}>
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className={styles.card}>
+              <div className={styles.skeletonLine} style={{ width: "60px", height: 18, borderRadius: 10 }} />
+              <div className={styles.skeletonLine} style={{ width: "90%", height: 15, marginTop: 12 }} />
+              <div className={styles.skeletonLine} style={{ width: "50%" }} />
+              <div className={styles.skeletonLine} style={{ width: "100%", height: 34, marginTop: 14, borderRadius: 8 }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -84,11 +106,11 @@ function Course() {
           const started = percent > 0;
           const tagClass =
             course.stream === "natural" ? styles.tagNatural :
-            course.stream === "social" ? styles.tagSocial :
-            styles.tagBoth;
+              course.stream === "social" ? styles.tagSocial :
+                styles.tagBoth;
           const tagLabel =
             course.stream === "both" ? "Natural & Social" :
-            course.stream === "natural" ? "Natural" : "Social";
+              course.stream === "natural" ? "Natural" : "Social";
 
           return (
             <div key={course.route_key} className={styles.card}>

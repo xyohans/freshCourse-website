@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from '../styles/exams.module.css';
+import { useUser } from '../context/AuthContext';
 
 function Exams() {
   const [courses, setCourses] = useState([]);
   const [filter, setFilter] = useState({ natural: false, social: false });
   const [loading, setLoading] = useState(true);
+  const { user } = useUser();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,13 +28,39 @@ function Exams() {
     setFilter(prev => ({ ...prev, [name]: checked }));
   }
 
+  function handleViewExams(course) {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    navigate(`/exams/${course.route_key}`);
+  }
+
   const filteredCourses = courses.filter(course => {
     if (!filter.natural && !filter.social) return true;
     if (course.stream === 'both') return true;
     return filter[course.stream];
   });
 
-  if (loading) return <div className={styles.loadingState}>Loading exams...</div>;
+  if (loading) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.header}>
+          <div className={styles.skeletonLine} style={{ width: "100px", height: 22 }} />
+          <div className={styles.skeletonLine} style={{ width: "300px", marginTop: 6 }} />
+        </div>
+        <div className={styles.grid}>
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className={styles.card}>
+              <div className={styles.skeletonLine} style={{ width: "60px", height: 18, borderRadius: 10 }} />
+              <div className={styles.skeletonLine} style={{ width: "90%", height: 15, marginTop: 12 }} />
+              <div className={styles.skeletonLine} style={{ width: "100%", height: 34, marginTop: 14, borderRadius: 8 }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -57,17 +85,17 @@ function Exams() {
         {filteredCourses.map(course => {
           const tagClass =
             course.stream === 'natural' ? styles.tagNatural :
-            course.stream === 'social' ? styles.tagSocial :
-            styles.tagBoth;
+              course.stream === 'social' ? styles.tagSocial :
+                styles.tagBoth;
           const tagLabel =
             course.stream === 'both' ? 'Natural & Social' :
-            course.stream === 'natural' ? 'Natural' : 'Social';
+              course.stream === 'natural' ? 'Natural' : 'Social';
 
           return (
             <div key={course.route_key} className={styles.card}>
               <span className={`${styles.streamTag} ${tagClass}`}>{tagLabel}</span>
               <p className={styles.courseTitle}>{course.title}</p>
-              <button className={styles.viewBtn} onClick={() => navigate(`/exams/${course.route_key}`)}>
+              <button className={styles.viewBtn} onClick={() => handleViewExams(course)}>
                 View exams
               </button>
             </div>

@@ -1,15 +1,30 @@
 
-const supabase = require('../db_connect');
+const supabase = require('../supabaseClient');
 
-module.exports = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+const requireAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
 
-  const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
 
-  if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+    const token = authHeader.split(' ')[1];
 
-  req.user = user; // now use req.user.id instead of req.body.userId
-  next();
+    // Ask Supabase to verify the token and return the user
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    req.user = user; // now every route can use req.user.id
+    next();
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Auth check failed' });
+  }
 };
+
+module.exports = requireAuth;

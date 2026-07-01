@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const supabase = require('../db_connect'); // Your configured Supabase client
+const supabase = require('../supabaseClient');
 
 // POST /api/exams/start
 router.post('/start', async (req, res) => {
@@ -23,12 +23,9 @@ router.post('/start', async (req, res) => {
     if (existing && existing.length > 0)
       return res.json({ attemptId: existing[0].id, resumed: true });
 
-    // Insert new attempt and get back the generated ID
     const { data: newAttempt, error: insertError } = await supabase
       .from('exam_attempts')
-      .insert([
-        { user_id: userId, exam_paper_id: paperId, reveal_mode: revealMode }
-      ])
+      .insert([{ user_id: userId, exam_paper_id: paperId, reveal_mode: revealMode }])
       .select('id');
 
     if (insertError) throw insertError;
@@ -48,7 +45,6 @@ router.post('/submit', async (req, res) => {
     if (!attemptId || !answers || score === undefined)
       return res.status(400).json({ error: 'attemptId, answers and score are required' });
 
-    // Validate attempt status
     const { data: attempt, error: attemptError } = await supabase
       .from('exam_attempts')
       .select('id, submitted_at')
@@ -62,7 +58,6 @@ router.post('/submit', async (req, res) => {
     if (attempt[0].submitted_at)
       return res.status(400).json({ error: 'Exam already submitted' });
 
-    // Format answers array for a highly optimized single batch insert
     const formattedAnswers = answers.map(answer => ({
       attempt_id: attemptId,
       question_number: answer.question_number,
@@ -76,13 +71,9 @@ router.post('/submit', async (req, res) => {
 
     if (batchInsertError) throw batchInsertError;
 
-    // Update main exam attempt metadata with current timestamp
     const { error: updateError } = await supabase
       .from('exam_attempts')
-      .update({ 
-        score: score, 
-        submitted_at: new Date().toISOString() // NOW() equivalent
-      })
+      .update({ score, submitted_at: new Date().toISOString() })
       .eq('id', attemptId);
 
     if (updateError) throw updateError;
@@ -111,9 +102,7 @@ router.get('/attempts', async (req, res) => {
         reveal_mode,
         started_at,
         submitted_at,
-        exam_papers (
-          total_questions
-        )
+        exam_papers ( total_questions )
       `)
       .eq('user_id', userId)
       .not('submitted_at', 'is', null)
@@ -121,7 +110,6 @@ router.get('/attempts', async (req, res) => {
 
     if (error) throw error;
 
-    // Clean up structure to match original flat MySQL response array
     const formattedRows = data.map(row => ({
       id: row.id,
       exam_paper_id: row.exam_paper_id,
@@ -144,7 +132,6 @@ router.get('/results/:attemptId', async (req, res) => {
   try {
     const { attemptId } = req.params;
 
-    // Fetch the attempt info along with nested global relationships
     const { data: attemptData, error: attemptError } = await supabase
       .from('exam_attempts')
       .select(`
@@ -163,7 +150,6 @@ router.get('/results/:attemptId', async (req, res) => {
     if (!attemptData || attemptData.length === 0)
       return res.status(404).json({ error: 'Attempt not found' });
 
-    // Fetch attempt answers ordered cleanly
     const { data: answers, error: answersError } = await supabase
       .from('attempt_answers')
       .select('question_number, selected_answer, is_correct')
@@ -173,9 +159,8 @@ router.get('/results/:attemptId', async (req, res) => {
     if (answersError) throw answersError;
 
     const row = attemptData[0];
-    
-    // Construct flat structure expected by frontend
-    const result = {
+
+    res.json({
       id: row.id,
       score: row.score,
       reveal_mode: row.reveal_mode,
@@ -187,9 +172,7 @@ router.get('/results/:attemptId', async (req, res) => {
       university_name: row.exam_papers?.university_courses?.universities?.name,
       course_title: row.exam_papers?.university_courses?.courses?.title,
       answers
-    };
-
-    res.json(result);
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch results' });
@@ -200,38 +183,55 @@ router.get('/results/:attemptId', async (req, res) => {
 
 // GET /api/exams/:courseKey
 router.get('/:courseKey', async (req, res) => {
-  const { courseKey } = req.params;
   try {
+    const { courseKey } = req.params;
+
+    // 1. Find the course id by route_key
+    const { data: course, error: courseError } = await supabase
+      .from('courses')
+      .select('id')
+      .eq('route_key', courseKey)
+      .single();
+
+    if (courseError) throw courseError;
+
+    // 2. Find university_courses rows for this course
+    const { data: uniCourses, error: uniCoursesError } = await supabase
+      .from('university_courses')
+      .select('id, universities ( id, name, abbreviation )')
+      .eq('course_id', course.id);
+
+    if (uniCoursesError) throw uniCoursesError;
+
+    const uniCourseIds = uniCourses.map(uc => uc.id);
+
+    // 3. Get exam papers for those university_courses
     const { data, error } = await supabase
       .from('exam_papers')
-      .select(`
-        id, year, total_questions, questions_url,
-        university_courses!inner (
-          universities ( id, name, abbreviation ),
-          courses!inner ( route_key )
-        )
-      `)
-      .eq('university_courses.courses.route_key', courseKey)
-      .order('year', { ascending: false })
-      .order('university_courses.universities.name', { ascending: true });
+      .select('id, year, total_questions, questions_url, university_course_id')
+      .in('university_course_id', uniCourseIds)
+      .order('year', { ascending: false });
 
     if (error) throw error;
 
-    // Flatten nested output mapping format
+    // 4. Map university info back onto each paper
+    const uniCourseMap = {};
+    uniCourses.forEach(uc => { uniCourseMap[uc.id] = uc.universities; });
+
     const formattedData = data.map(item => ({
       id: item.id,
       year: item.year,
       total_questions: item.total_questions,
       questions_url: item.questions_url,
-      university_id: item.university_courses?.universities?.id,
-      university_name: item.university_courses?.universities?.name,
-      university_abbr: item.university_courses?.universities?.abbreviation
+      university_id: uniCourseMap[item.university_course_id]?.id,
+      university_name: uniCourseMap[item.university_course_id]?.name,
+      university_abbr: uniCourseMap[item.university_course_id]?.abbreviation
     }));
 
     res.json(formattedData);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Error occurred" });
+    res.status(500).json({ message: 'Error occurred' });
   }
 });
 
@@ -240,33 +240,41 @@ router.get('/:courseKey/:paperId', async (req, res) => {
   try {
     const { paperId, courseKey } = req.params;
 
-    const { data, error } = await supabase
+    // 1. Get the exam paper
+    const { data: paper, error: paperError } = await supabase
       .from('exam_papers')
-      .select(`
-        id, year, total_questions, questions_url,
-        university_courses!inner (
-          universities ( name, abbreviation ),
-          courses!inner ( title, route_key )
-        )
-      `)
+      .select('id, year, total_questions, questions_url, university_course_id')
       .eq('id', paperId)
-      .eq('university_courses.courses.route_key', courseKey);
+      .single();
 
-    if (error) throw error;
-    if (!data || data.length === 0)
+    if (paperError) throw paperError;
+
+    // 2. Get the university_courses row with university and course info
+    const { data: uniCourse, error: uniCourseError } = await supabase
+      .from('university_courses')
+      .select(`
+        id,
+        universities ( name, abbreviation ),
+        courses ( title, route_key )
+      `)
+      .eq('id', paper.university_course_id)
+      .single();
+
+    if (uniCourseError) throw uniCourseError;
+
+    // 3. Verify the courseKey matches
+    if (uniCourse.courses?.route_key !== courseKey)
       return res.status(404).json({ error: 'Exam paper not found' });
 
-    const item = data[0];
-    
     res.json({
-      id: item.id,
-      year: item.year,
-      total_questions: item.total_questions,
-      questions_url: item.questions_url,
-      university_name: item.university_courses?.universities?.name,
-      university_abbr: item.university_courses?.universities?.abbreviation,
-      course_title: item.university_courses?.courses?.title,
-      course_key: item.university_courses?.courses?.route_key
+      id: paper.id,
+      year: paper.year,
+      total_questions: paper.total_questions,
+      questions_url: paper.questions_url,
+      university_name: uniCourse.universities?.name,
+      university_abbr: uniCourse.universities?.abbreviation,
+      course_title: uniCourse.courses?.title,
+      course_key: uniCourse.courses?.route_key
     });
   } catch (err) {
     console.error(err);

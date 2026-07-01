@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const supabase = require('../db_connect'); // Your configured Supabase client
+const supabase = require('../supabaseClient'); // Your configured Supabase client
 
 router.get('/', async (req, res) => {
   try {

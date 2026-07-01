@@ -33,7 +33,31 @@ function ExamViewer() {
     return uniMatch && yearMatch;
   });
 
-  if (loading) return <div className={styles.loadingState}>Loading exams...</div>;
+ if (loading) {
+  return (
+    <div className={styles.viewerContainer}>
+      <div className={styles.viewerSidebar}>
+        <div className={styles.skeletonLine} style={{ width: "70px", height: 16 }} />
+        <div className={styles.skeletonLine} style={{ width: "90px", height: 14, marginTop: 20 }} />
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className={styles.skeletonLine} style={{ width: "100%", height: 30, borderRadius: 8, marginTop: 8 }} />
+        ))}
+      </div>
+      <div className={styles.viewerMain}>
+        <div className={styles.skeletonLine} style={{ width: "120px" }} />
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className={styles.examCard}>
+            <div>
+              <div className={styles.skeletonLine} style={{ width: "220px", height: 15 }} />
+              <div className={styles.skeletonLine} style={{ width: "140px" }} />
+            </div>
+            <div className={styles.skeletonLine} style={{ width: "90px", height: 32, borderRadius: 8 }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
   return (
     <div className={styles.viewerContainer}>
