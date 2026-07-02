@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../supabaseClient'
+import styles from '../styles/auth.module.css'
 
 function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -20,65 +21,52 @@ function ForgotPassword() {
   }
 
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
-        <div style={styles.logo}>Fresh<span style={{ color: '#1D9E75' }}>Course</span></div>
+    <div className={styles.page}>
+      <div className={styles.card}>
+        <div className={styles.logo}>
+          Fresh<span className={styles.logoAccent}>Course</span>
+        </div>
 
         {sent ? (
           <>
-            <h2 style={styles.heading}>Check your email</h2>
-            <p style={styles.sub}>We sent a password reset link to <strong>{email}</strong>. Click the link in the email to reset your password.</p>
-            <a href="/auth" style={styles.backLink}>← Back to login</a>
+            <h2 className={styles.heading}>Check your email</h2>
+            <p className={styles.sub}>
+              We sent a password reset link to <span className={styles.strong}>{email}</span>.
+              Click the link in the email to reset your password.
+            </p>
+            <a href="/auth" className={styles.backLink}>← Back to login</a>
           </>
         ) : (
           <>
-            <h2 style={styles.heading}>Forgot password?</h2>
-            <p style={styles.sub}>Enter your email and we'll send you a reset link.</p>
+            <h2 className={styles.heading}>Forgot password?</h2>
+            <p className={styles.sub}>Enter your email and we'll send you a reset link.</p>
 
-            <form onSubmit={handleSubmit} style={styles.form}>
-              <div style={styles.field}>
-                <label style={styles.label}>Email</label>
+            <form onSubmit={handleSubmit} className={styles.form}>
+              <div className={styles.field}>
+                <label className={styles.label}>Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
-                  style={styles.input}
+                  className={styles.input}
                 />
               </div>
 
-              {error && <p style={styles.error}>{error}</p>}
+              {error && <p className={styles.error}>{error}</p>}
 
-              <button type="submit" disabled={loading} style={styles.btn}>
+              <button type="submit" disabled={loading} className={styles.btn}>
                 {loading ? 'Sending…' : 'Send reset link'}
               </button>
             </form>
 
-            <a href="/auth" style={styles.backLink}>← Back to login</a>
+            <a href="/auth" className={styles.backLink}>← Back to login</a>
           </>
         )}
       </div>
     </div>
   )
-}
-
-const styles = {
-  page: { minHeight: '100vh', backgroundColor: '#f0f4f0', padding: '40px 16px' },
-  container: { maxWidth: '560px', margin: '0 auto' },
-  pageTitle: { fontSize: '22px', fontWeight: '600', color: '#1a1a1a', margin: '0 0 4px' },
-  pageSub: { fontSize: '13px', color: '#6b7280', margin: '0 0 24px' },
-  card: { background: '#ffffff', border: '1px solid #e2e8e2', borderRadius: '16px', padding: '28px', marginBottom: '16px' },
-  sectionTitle: { fontSize: '15px', fontWeight: '600', color: '#1a1a1a', margin: '0 0 18px' },
-  form: { display: 'flex', flexDirection: 'column', gap: '14px' },
-  field: { display: 'flex', flexDirection: 'column', gap: '5px' },
-  label: { fontSize: '12px', fontWeight: '500', color: '#374151' },
-  input: { height: '40px', padding: '0 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', color: '#1a1a1a', outline: 'none', width: '100%', boxSizing: 'border-box' },
-  phonePrefix: { height: '40px', padding: '0 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', color: '#6b7280', background: '#f5f7f5', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' },
-  btn: { height: '42px', background: '#1D9E75', color: '#ffffff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' },
-  error: { fontSize: '13px', color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px 12px', margin: '0' },
-  success: { fontSize: '13px', color: '#065f46', background: '#ecfdf5', border: '1px solid #6ee7b7', borderRadius: '8px', padding: '10px 12px', margin: '0' },
-  backLink: { display: 'block', marginTop: '20px', fontSize: '13px', color: '#1D9E75', textDecoration: 'none', textAlign: 'center' },
 }
 
 export default ForgotPassword

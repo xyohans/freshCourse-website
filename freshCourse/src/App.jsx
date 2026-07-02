@@ -14,6 +14,7 @@ import ResetPassword from "./users/ResetPassword"
 import Profile from "./users/Profile"
 import { useUser } from "./context/AuthContext"
 import { AuthProvider } from "./context/AuthContext"
+import NotFound from './pages/NotFound'
 
 
 function HomeRedirect() {
@@ -49,6 +50,7 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
         <ConditionalFooter />
       </Router>
