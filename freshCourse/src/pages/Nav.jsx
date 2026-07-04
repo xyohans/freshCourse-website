@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { HiOutlineMenu, HiOutlineX } from "react-icons/hi";
 import styles from "../styles/nav.module.css";
 import { useUser } from "../context/AuthContext";
-import { supabase } from "../supabaseClient";
+import { supabase } from "../lib/supabaseClient";
 
 function Nav() {
   const { user, userLoading } = useUser();

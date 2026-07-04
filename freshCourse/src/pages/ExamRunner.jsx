@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import styles from "../styles/exams.module.css";
 import { useUser } from "../context/AuthContext";
+import { apiFetch } from "../lib/apiFetch";
 
 function ExamRunner() {
   const { courseKey, paperId } = useParams();
@@ -14,19 +15,16 @@ function ExamRunner() {
   const [answers, setAnswers] = useState({});
   const [examStarted, setExamStarted] = useState(false);
   const [examDone, setExamDone] = useState(false);
+  const [finalResult, setFinalResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [contentLoading, setContentLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { user } = useUser();
+  const { user, userLoading } = useUser();
 
   useEffect(() => {
-    fetch(`/api/exams/${courseKey}/${paperId}`)
-      .then(res => {
-        if (!res.ok) throw new Error("Paper not found");
-        return res.json();
-      })
+    apiFetch(`/exams/${courseKey}/${paperId}`)
       .then(data => {
         setPaper(data);
         setLoading(false);
@@ -39,17 +37,17 @@ function ExamRunner() {
   }, [courseKey, paperId]);
 
   async function handleStart() {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
     setStarting(true);
     setError(null);
     try {
-      const res = await fetch('/api/exams/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.id, paperId: paper.id, revealMode })
+      const { attemptId } = await apiFetch("/exams/start", {
+        method: "POST",
+        body: JSON.stringify({ paperId: paper.id, revealMode }),
       });
-
-      if (!res.ok) throw new Error("Failed to start exam");
-      const { attemptId } = await res.json();
       setAttemptId(attemptId);
 
       setContentLoading(true);
@@ -68,35 +66,34 @@ function ExamRunner() {
   }
 
   function handleAnswer(questionNumber, selectedAnswer, correctAnswer) {
-    if (revealMode === 'on_answer' && answers[questionNumber]) return;
+    if (revealMode === "on_answer" && answers[questionNumber]) return;
 
     const isCorrect =
       selectedAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
 
     setAnswers(prev => ({
       ...prev,
-      [questionNumber]: { selectedAnswer, isCorrect }
+      [questionNumber]: { selectedAnswer, isCorrect },
     }));
   }
 
   async function handleSubmit() {
     setSubmitting(true);
+    setError(null);
     try {
+      // Only selected_answer + question_number are sent — the server grades
+      // against the answer key itself, it doesn't trust our local is_correct/score.
       const formattedAnswers = questions.map(q => ({
         question_number: q.number,
         selected_answer: answers[q.number]?.selectedAnswer || null,
-        is_correct: answers[q.number]?.isCorrect || false
       }));
 
-      const score = formattedAnswers.filter(a => a.is_correct).length;
-
-      const res = await fetch('/api/exams/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ attemptId, answers: formattedAnswers, score })
+      const result = await apiFetch("/exams/submit", {
+        method: "POST",
+        body: JSON.stringify({ attemptId, answers: formattedAnswers }),
       });
 
-      if (!res.ok) throw new Error("Failed to submit");
+      setFinalResult(result); // { success, score, total }
       setExamDone(true);
     } catch (err) {
       console.error(err);
@@ -111,22 +108,24 @@ function ExamRunner() {
     setAttemptId(null);
     setExamStarted(false);
     setExamDone(false);
+    setFinalResult(null);
     setError(null);
   }
 
- if (loading) {
-  return (
-    <div className={styles.runnerPage}>
-      <div className={styles.skeletonLine} style={{ width: "60px" }} />
-      <div className={styles.skeletonLine} style={{ width: "50%", height: 22, marginTop: 16 }} />
-      <div className={styles.skeletonLine} style={{ width: "70%" }} />
-      <div className={styles.skeletonLine} style={{ width: "40%", height: 14, marginTop: 24 }} />
-      {[...Array(2)].map((_, i) => (
-        <div key={i} className={styles.skeletonLine} style={{ width: "100%", height: 60, borderRadius: 10, marginTop: 10 }} />
-      ))}
-    </div>
-  );
-}
+  if (loading || userLoading) {
+    return (
+      <div className={styles.runnerPage}>
+        <div className={styles.skeletonLine} style={{ width: "60px" }} />
+        <div className={styles.skeletonLine} style={{ width: "50%", height: 22, marginTop: 16 }} />
+        <div className={styles.skeletonLine} style={{ width: "70%" }} />
+        <div className={styles.skeletonLine} style={{ width: "40%", height: 14, marginTop: 24 }} />
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className={styles.skeletonLine} style={{ width: "100%", height: 60, borderRadius: 10, marginTop: 10 }} />
+        ))}
+      </div>
+    );
+  }
+
   if (error && !examStarted) return <p className={styles.errorText}>{error}</p>;
 
   if (!examStarted) {
@@ -142,16 +141,16 @@ function ExamRunner() {
         <p className={styles.revealLabel}>How do you want to see answers?</p>
 
         <div
-          className={`${styles.revealOption} ${revealMode === 'on_answer' ? styles.revealOptionSelected : ''}`}
-          onClick={() => setRevealMode('on_answer')}
+          className={`${styles.revealOption} ${revealMode === "on_answer" ? styles.revealOptionSelected : ""}`}
+          onClick={() => setRevealMode("on_answer")}
         >
           <p className={styles.revealOptionTitle}>After each answer</p>
           <p className={styles.revealOptionSub}>See correct answer and explanation immediately after you answer</p>
         </div>
 
         <div
-          className={`${styles.revealOption} ${revealMode === 'on_submit' ? styles.revealOptionSelected : ''}`}
-          onClick={() => setRevealMode('on_submit')}
+          className={`${styles.revealOption} ${revealMode === "on_submit" ? styles.revealOptionSelected : ""}`}
+          onClick={() => setRevealMode("on_submit")}
         >
           <p className={styles.revealOptionTitle}>After submitting</p>
           <p className={styles.revealOptionSub}>See all results at the end when you submit</p>
@@ -160,33 +159,34 @@ function ExamRunner() {
         {error && <p className={styles.errorText}>{error}</p>}
 
         <button className={styles.primaryBtn} onClick={handleStart} disabled={starting}>
-          {starting ? 'Starting...' : 'Start exam'}
+          {starting ? "Starting..." : "Start exam"}
         </button>
       </div>
     );
   }
 
   if (examDone) {
-    const correct = questions.filter(q => answers[q.number]?.isCorrect).length;
-    const pct = Math.round(correct / questions.length * 100);
+    const total = finalResult?.total ?? questions.length;
+    const score = finalResult?.score ?? 0;
+    const pct = total > 0 ? Math.round((score / total) * 100) : 0;
 
     return (
       <div className={styles.runnerPage}>
         <p className={styles.resultScore}>{pct}%</p>
         <p className={styles.resultMeta}>{paper.university_name} · {paper.course_title} · {paper.year}</p>
-        <p className={styles.resultSummary}>Correct: {correct} · Wrong: {questions.length - correct} · Total: {questions.length}</p>
+        <p className={styles.resultSummary}>Correct: {score} · Wrong: {total - score} · Total: {total}</p>
 
         {questions.map(q => {
           const attempt = answers[q.number];
           const selected = attempt?.selectedAnswer;
-          const isCorrect = attempt?.isCorrect;
+          const isCorrect = selected?.trim().toLowerCase() === q.answer?.trim().toLowerCase();
 
           return (
             <div key={q.number} className={styles.questionBlock}>
               <p className={styles.questionText}><strong>{q.number}.</strong> {q.text}</p>
 
               {q.options.length > 0 && q.options.map((opt, i) => {
-                const letter = ['A', 'B', 'C', 'D'][i];
+                const letter = ["A", "B", "C", "D"][i];
                 const isCorrectOpt = letter === q.answer;
                 const isSelectedOpt = selected === letter;
                 let cls = styles.optionReview;
@@ -202,7 +202,7 @@ function ExamRunner() {
               {q.options.length === 0 && (
                 <div className={styles.answerReview}>
                   <p className={styles.answerReviewLabel}>
-                    Your answer: <span className={isCorrect ? styles.answerCorrectText : styles.answerWrongText}>{selected || 'No answer'}</span>
+                    Your answer: <span className={isCorrect ? styles.answerCorrectText : styles.answerWrongText}>{selected || "No answer"}</span>
                   </p>
                   <p className={styles.answerReviewLabel}>
                     Correct answer: <span className={styles.answerCorrectText}>{q.answer}</span>
@@ -224,21 +224,21 @@ function ExamRunner() {
   }
 
   if (contentLoading) {
-  return (
-    <div className={styles.runnerPage}>
-      <div className={styles.skeletonLine} style={{ width: "60%" }} />
-      {[...Array(3)].map((_, i) => (
-        <div key={i} className={styles.questionBlock}>
-          <div className={styles.skeletonLine} style={{ width: "30%" }} />
-          <div className={styles.skeletonLine} style={{ width: "85%", height: 15 }} />
-          {[...Array(4)].map((_, j) => (
-            <div key={j} className={styles.skeletonLine} style={{ width: "100%", height: 36, borderRadius: 8, marginTop: 6 }} />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
+    return (
+      <div className={styles.runnerPage}>
+        <div className={styles.skeletonLine} style={{ width: "60%" }} />
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className={styles.questionBlock}>
+            <div className={styles.skeletonLine} style={{ width: "30%" }} />
+            <div className={styles.skeletonLine} style={{ width: "85%", height: 15 }} />
+            {[...Array(4)].map((_, j) => (
+              <div key={j} className={styles.skeletonLine} style={{ width: "100%", height: 36, borderRadius: 8, marginTop: 6 }} />
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   const allAnswered = questions.every(q => answers[q.number] !== undefined);
 
@@ -250,7 +250,7 @@ function ExamRunner() {
       {questions.map(q => {
         const selected = answers[q.number]?.selectedAnswer;
         const isAnswered = selected !== undefined;
-        const revealed = revealMode === 'on_answer' && isAnswered;
+        const revealed = revealMode === "on_answer" && isAnswered;
 
         return (
           <div key={q.number} className={styles.questionBlock}>
@@ -258,7 +258,7 @@ function ExamRunner() {
             <p className={styles.questionText}>{q.text}</p>
 
             {q.options.length > 0 && q.options.map((opt, i) => {
-              const letter = ['A', 'B', 'C', 'D'][i];
+              const letter = ["A", "B", "C", "D"][i];
               const isCorrectOpt = letter === q.answer;
               const isSelectedOpt = selected === letter;
 
@@ -287,11 +287,11 @@ function ExamRunner() {
                 type="text"
                 className={styles.textInput}
                 placeholder={
-                  q.type === 'fill_blank' ? 'Fill in the blank' :
-                  q.type === 'calculation' ? 'Enter your answer' :
-                  'Write your answer'
+                  q.type === "fill_blank" ? "Fill in the blank" :
+                  q.type === "calculation" ? "Enter your answer" :
+                  "Write your answer"
                 }
-                value={answers[q.number]?.selectedAnswer || ''}
+                value={answers[q.number]?.selectedAnswer || ""}
                 onChange={e => handleAnswer(q.number, e.target.value, q.answer)}
                 disabled={revealed}
               />
@@ -300,7 +300,7 @@ function ExamRunner() {
             {revealed && (
               <div className={styles.feedbackBox}>
                 <p className={answers[q.number]?.isCorrect ? styles.feedbackCorrect : styles.feedbackWrong}>
-                  {answers[q.number]?.isCorrect ? 'Correct' : `Wrong — correct answer is ${q.answer}`}
+                  {answers[q.number]?.isCorrect ? "Correct" : `Wrong — correct answer is ${q.answer}`}
                 </p>
                 <p className={styles.explanationText}><strong>Explanation:</strong> {q.explanation}</p>
               </div>
@@ -312,7 +312,7 @@ function ExamRunner() {
       {error && <p className={styles.errorText}>{error}</p>}
 
       <button className={styles.primaryBtn} onClick={handleSubmit} disabled={!allAnswered || submitting}>
-        {submitting ? 'Submitting...' : 'Submit exam'}
+        {submitting ? "Submitting..." : "Submit exam"}
       </button>
     </div>
   );

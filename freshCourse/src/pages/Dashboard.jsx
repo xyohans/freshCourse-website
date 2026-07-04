@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../styles/dashboard.module.css";
-import { useUser } from "../context/AuthContext"; 
+import { useUser } from "../context/AuthContext";
+import { apiFetch } from "../lib/apiFetch";
 
 function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -10,14 +11,16 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { user, userLoading } = useUser();
-  const userId = user?.id;
-
-
 
   useEffect(() => {
-    if(!userId) return;
-    fetch(`/api/dashboard?userId=${userId}`)
-      .then(res => res.json())
+    if (userLoading) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    apiFetch("/dashboard")
       .then(data => {
         setStats(data.stats);
         setCourses(data.courses);
@@ -28,7 +31,7 @@ function Dashboard() {
         console.error(err);
         setLoading(false);
       });
-  }, []);
+  }, [userLoading, user]);
 
   function scoreClass(percent) {
     if (percent >= 70) return styles.scoreGood;
@@ -36,38 +39,44 @@ function Dashboard() {
     return styles.scoreLow;
   }
 
- if (loading) {
-  return (
-    <div className={styles.page}>
-      <div className={styles.statsGrid}>
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className={styles.statCard}>
-            <div className={styles.skeletonLine} style={{ width: "80px" }} />
-            <div className={styles.skeletonLine} style={{ width: "50px", height: 22, marginTop: 8 }} />
+  if (userLoading || loading) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.statsGrid}>
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className={styles.statCard}>
+              <div className={styles.skeletonLine} style={{ width: "80px" }} />
+              <div className={styles.skeletonLine} style={{ width: "50px", height: 22, marginTop: 8 }} />
+            </div>
+          ))}
+        </div>
+
+        <div className={styles.skeletonLine} style={{ width: "160px", height: 16, margin: "24px 0 12px" }} />
+        {[...Array(2)].map((_, i) => (
+          <div key={i} className={styles.courseRow}>
+            <div className={styles.skeletonLine} style={{ width: "35%" }} />
+            <div className={styles.skeletonLine} style={{ flex: 1, height: 6 }} />
+            <div className={styles.skeletonLine} style={{ width: "30px" }} />
+            <div className={styles.skeletonLine} style={{ width: "80px", height: 30, borderRadius: 8 }} />
+          </div>
+        ))}
+
+        <div className={styles.skeletonLine} style={{ width: "180px", height: 16, margin: "24px 0 12px" }} />
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className={styles.examRow}>
+            <div className={styles.skeletonLine} style={{ width: "50%" }} />
+            <div className={styles.skeletonLine} style={{ width: "44px", height: 24, borderRadius: 12 }} />
           </div>
         ))}
       </div>
+    );
+  }
 
-      <div className={styles.skeletonLine} style={{ width: "160px", height: 16, margin: "24px 0 12px" }} />
-      {[...Array(2)].map((_, i) => (
-        <div key={i} className={styles.courseRow}>
-          <div className={styles.skeletonLine} style={{ width: "35%" }} />
-          <div className={styles.skeletonLine} style={{ flex: 1, height: 6 }} />
-          <div className={styles.skeletonLine} style={{ width: "30px" }} />
-          <div className={styles.skeletonLine} style={{ width: "80px", height: 30, borderRadius: 8 }} />
-        </div>
-      ))}
+  if (!user) {
+    navigate("/auth");
+    return null;
+  }
 
-      <div className={styles.skeletonLine} style={{ width: "180px", height: 16, margin: "24px 0 12px" }} />
-      {[...Array(3)].map((_, i) => (
-        <div key={i} className={styles.examRow}>
-          <div className={styles.skeletonLine} style={{ width: "50%" }} />
-          <div className={styles.skeletonLine} style={{ width: "44px", height: 24, borderRadius: 12 }} />
-        </div>
-      ))}
-    </div>
-  );
-}
   return (
     <div className={styles.page}>
       <div className={styles.statsGrid}>

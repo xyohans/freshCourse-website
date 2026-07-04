@@ -1,29 +1,25 @@
 const express = require('express');
 const router = express.Router();
-const supabase = require('../supabaseClient'); // Your configured Supabase client
+const supabase = require('../supabaseClient');
+const requireAuth = require('../auth/auth');
+
+router.use(requireAuth);
 
 router.get('/', async (req, res) => {
   try {
-    const { userId } = req.query;
+    const userId = req.user.id;
 
-    if (!userId)
-      return res.status(400).json({ error: 'userId is required' });
-
-    // Execute all 4 queries concurrently using Promise.all to decrease response times
     const [
       courseStatsResult,
       examStatsResult,
       coursesResult,
       examResultsRawResult
     ] = await Promise.all([
-      
-      // 1. courses started and completed
       supabase
         .from('user_course_progress')
         .select('status')
         .eq('user_id', userId),
 
-      // 2. exams taken and score calculations
       supabase
         .from('exam_attempts')
         .select(`
@@ -33,7 +29,6 @@ router.get('/', async (req, res) => {
         .eq('user_id', userId)
         .not('submitted_at', 'is', null),
 
-      // 3. courses in progress for "Continue learning"
       supabase
         .from('user_course_progress')
         .select(`
@@ -45,7 +40,6 @@ router.get('/', async (req, res) => {
         .order('last_accessed', { ascending: false })
         .limit(5),
 
-      // 4. recent exam results
       supabase
         .from('exam_attempts')
         .select(`
@@ -64,21 +58,18 @@ router.get('/', async (req, res) => {
         .limit(5)
     ]);
 
-    // Check for errors in any of the executions
     if (courseStatsResult.error) throw courseStatsResult.error;
     if (examStatsResult.error) throw examStatsResult.error;
     if (coursesResult.error) throw coursesResult.error;
     if (examResultsRawResult.error) throw examResultsRawResult.error;
 
-    // --- PROCESS 1: Course Statistics ---
     const rawProgress = courseStatsResult.data;
     const coursesStarted = rawProgress.length;
     const coursesCompleted = rawProgress.filter(c => c.status === 'completed').length;
 
-    // --- PROCESS 2: Exam Statistics ---
     const rawExams = examStatsResult.data;
     const examsTaken = rawExams.length;
-    
+
     let totalScorePercentage = 0;
     rawExams.forEach(ea => {
       const totalQ = ea.exam_papers?.total_questions || 0;
@@ -88,7 +79,6 @@ router.get('/', async (req, res) => {
     });
     const averageScore = examsTaken > 0 ? Math.round(totalScorePercentage / examsTaken) : 0;
 
-    // --- PROCESS 3: Format Continue Learning Courses ---
     const courses = coursesResult.data.map(ucp => {
       const completed = ucp.completed_subtopics || 0;
       const total = ucp.total_subtopics || 0;
@@ -100,7 +90,6 @@ router.get('/', async (req, res) => {
       };
     });
 
-    // --- PROCESS 4: Format Recent Exam Results ---
     const examResults = examResultsRawResult.data.map(r => {
       const totalQuestions = r.exam_papers?.total_questions || 0;
       return {
@@ -113,14 +102,8 @@ router.get('/', async (req, res) => {
       };
     });
 
-    // --- Final Combined Output Response ---
     res.json({
-      stats: {
-        coursesStarted,
-        coursesCompleted,
-        examsTaken,
-        averageScore
-      },
+      stats: { coursesStarted, coursesCompleted, examsTaken, averageScore },
       courses,
       examResults
     });

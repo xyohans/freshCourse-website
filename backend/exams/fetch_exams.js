@@ -1,16 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../supabaseClient');
+const requireAuth = require('../auth/auth');
 
-// POST /api/exams/start
+router.use(requireAuth);
+
+// POST /exams/start
 router.post('/start', async (req, res) => {
   try {
-    const { userId, paperId, revealMode } = req.body;
+    const userId = req.user.id;
+    const { paperId, revealMode } = req.body;
 
-    if (!userId || !paperId || !revealMode)
-      return res.status(400).json({ error: 'userId, paperId and revealMode are required' });
+    if (!paperId || !revealMode)
+      return res.status(400).json({ error: 'paperId and revealMode are required' });
 
-    // Check for existing unfinished attempt
     const { data: existing, error: checkError } = await supabase
       .from('exam_attempts')
       .select('id')
@@ -37,33 +40,68 @@ router.post('/start', async (req, res) => {
   }
 });
 
-// POST /api/exams/submit
+// POST /exams/submit
+// Score is computed server-side against the answer key — client-supplied score is ignored.
 router.post('/submit', async (req, res) => {
   try {
-    const { attemptId, answers, score } = req.body;
+    const userId = req.user.id;
+    const { attemptId, answers } = req.body;
 
-    if (!attemptId || !answers || score === undefined)
-      return res.status(400).json({ error: 'attemptId, answers and score are required' });
+    if (!attemptId || !Array.isArray(answers))
+      return res.status(400).json({ error: 'attemptId and answers are required' });
 
-    const { data: attempt, error: attemptError } = await supabase
+    // 1. Load the attempt and verify ownership + not already submitted
+    const { data: attemptRows, error: attemptError } = await supabase
       .from('exam_attempts')
-      .select('id, submitted_at')
+      .select('id, user_id, submitted_at, exam_paper_id')
       .eq('id', attemptId);
 
     if (attemptError) throw attemptError;
-
-    if (!attempt || attempt.length === 0)
+    if (!attemptRows || attemptRows.length === 0)
       return res.status(404).json({ error: 'Attempt not found' });
 
-    if (attempt[0].submitted_at)
+    const attempt = attemptRows[0];
+
+    if (attempt.user_id !== userId)
+      return res.status(403).json({ error: 'Not your attempt' });
+
+    if (attempt.submitted_at)
       return res.status(400).json({ error: 'Exam already submitted' });
 
-    const formattedAnswers = answers.map(answer => ({
-      attempt_id: attemptId,
-      question_number: answer.question_number,
-      selected_answer: answer.selected_answer,
-      is_correct: answer.is_correct
-    }));
+    // 2. Load the answer key for this paper
+    const { data: paper, error: paperError } = await supabase
+      .from('exam_papers')
+      .select('questions_url, total_questions')
+      .eq('id', attempt.exam_paper_id)
+      .single();
+
+    if (paperError) throw paperError;
+
+    const keyRes = await fetch(paper.questions_url);
+    if (!keyRes.ok) throw new Error('Failed to load answer key');
+    const questions = await keyRes.json();
+
+    const answerKey = {};
+    questions.forEach(q => { answerKey[q.number] = q.answer; });
+
+    // 3. Grade server-side — ignore any is_correct/score sent by the client
+    let score = 0;
+    const formattedAnswers = answers.map(answer => {
+      const correctAnswer = answerKey[answer.question_number];
+      const isCorrect =
+        typeof answer.selected_answer === 'string' &&
+        typeof correctAnswer === 'string' &&
+        answer.selected_answer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+
+      if (isCorrect) score++;
+
+      return {
+        attempt_id: attemptId,
+        question_number: answer.question_number,
+        selected_answer: answer.selected_answer,
+        is_correct: isCorrect
+      };
+    });
 
     const { error: batchInsertError } = await supabase
       .from('attempt_answers')
@@ -78,20 +116,17 @@ router.post('/submit', async (req, res) => {
 
     if (updateError) throw updateError;
 
-    res.json({ success: true, score });
+    res.json({ success: true, score, total: questions.length });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to submit exam' });
   }
 });
 
-// GET /api/exams/attempts?userId=...
+// GET /exams/attempts
 router.get('/attempts', async (req, res) => {
   try {
-    const { userId } = req.query;
-
-    if (!userId)
-      return res.status(400).json({ error: 'userId is required' });
+    const userId = req.user.id;
 
     const { data, error } = await supabase
       .from('exam_attempts')
@@ -127,15 +162,16 @@ router.get('/attempts', async (req, res) => {
   }
 });
 
-// GET /api/exams/results/:attemptId
+// GET /exams/results/:attemptId
 router.get('/results/:attemptId', async (req, res) => {
   try {
+    const userId = req.user.id;
     const { attemptId } = req.params;
 
     const { data: attemptData, error: attemptError } = await supabase
       .from('exam_attempts')
       .select(`
-        id, score, reveal_mode, started_at, submitted_at,
+        id, user_id, score, reveal_mode, started_at, submitted_at,
         exam_papers (
           total_questions, questions_url, year,
           university_courses (
@@ -150,6 +186,11 @@ router.get('/results/:attemptId', async (req, res) => {
     if (!attemptData || attemptData.length === 0)
       return res.status(404).json({ error: 'Attempt not found' });
 
+    const row = attemptData[0];
+
+    if (row.user_id !== userId)
+      return res.status(403).json({ error: 'Not your attempt' });
+
     const { data: answers, error: answersError } = await supabase
       .from('attempt_answers')
       .select('question_number, selected_answer, is_correct')
@@ -157,8 +198,6 @@ router.get('/results/:attemptId', async (req, res) => {
       .order('question_number', { ascending: true });
 
     if (answersError) throw answersError;
-
-    const row = attemptData[0];
 
     res.json({
       id: row.id,
@@ -181,12 +220,11 @@ router.get('/results/:attemptId', async (req, res) => {
 
 // ─── DYNAMIC ROUTES LAST ────────────────────────────────────
 
-// GET /api/exams/:courseKey
+// GET /exams/:courseKey
 router.get('/:courseKey', async (req, res) => {
   try {
     const { courseKey } = req.params;
 
-    // 1. Find the course id by route_key
     const { data: course, error: courseError } = await supabase
       .from('courses')
       .select('id')
@@ -195,7 +233,6 @@ router.get('/:courseKey', async (req, res) => {
 
     if (courseError) throw courseError;
 
-    // 2. Find university_courses rows for this course
     const { data: uniCourses, error: uniCoursesError } = await supabase
       .from('university_courses')
       .select('id, universities ( id, name, abbreviation )')
@@ -205,7 +242,6 @@ router.get('/:courseKey', async (req, res) => {
 
     const uniCourseIds = uniCourses.map(uc => uc.id);
 
-    // 3. Get exam papers for those university_courses
     const { data, error } = await supabase
       .from('exam_papers')
       .select('id, year, total_questions, questions_url, university_course_id')
@@ -214,7 +250,6 @@ router.get('/:courseKey', async (req, res) => {
 
     if (error) throw error;
 
-    // 4. Map university info back onto each paper
     const uniCourseMap = {};
     uniCourses.forEach(uc => { uniCourseMap[uc.id] = uc.universities; });
 
@@ -231,16 +266,15 @@ router.get('/:courseKey', async (req, res) => {
     res.json(formattedData);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Error occurred' });
+    res.status(500).json({ error: 'Failed to fetch exam papers' });
   }
 });
 
-// GET /api/exams/:courseKey/:paperId
+// GET /exams/:courseKey/:paperId
 router.get('/:courseKey/:paperId', async (req, res) => {
   try {
     const { paperId, courseKey } = req.params;
 
-    // 1. Get the exam paper
     const { data: paper, error: paperError } = await supabase
       .from('exam_papers')
       .select('id, year, total_questions, questions_url, university_course_id')
@@ -249,7 +283,6 @@ router.get('/:courseKey/:paperId', async (req, res) => {
 
     if (paperError) throw paperError;
 
-    // 2. Get the university_courses row with university and course info
     const { data: uniCourse, error: uniCourseError } = await supabase
       .from('university_courses')
       .select(`
@@ -262,7 +295,6 @@ router.get('/:courseKey/:paperId', async (req, res) => {
 
     if (uniCourseError) throw uniCourseError;
 
-    // 3. Verify the courseKey matches
     if (uniCourse.courses?.route_key !== courseKey)
       return res.status(404).json({ error: 'Exam paper not found' });
 
@@ -278,7 +310,7 @@ router.get('/:courseKey/:paperId', async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(400).json({ error: 'Failed to fetch exam paper' });
+    res.status(500).json({ error: 'Failed to fetch exam paper' });
   }
 });
 

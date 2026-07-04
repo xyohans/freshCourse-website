@@ -1,4 +1,3 @@
-// client/src/lib/apiFetch.js
 import { supabase } from "./supabaseClient";
 
 export async function apiFetch(path, options = {}) {
@@ -14,6 +13,15 @@ export async function apiFetch(path, options = {}) {
     },
   });
 
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  if (res.status === 401) {
+    window.location.href = "/auth";
+    throw new Error("Session expired");
+  }
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `API error: ${res.status}`);
+  }
+
   return res.json();
 }

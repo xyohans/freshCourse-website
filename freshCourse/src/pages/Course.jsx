@@ -2,23 +2,19 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../styles/courses.module.css";
 import { useUser } from "../context/AuthContext";
+import { apiFetch } from "../lib/apiFetch";
 
 function Course() {
   const [courses, setCourses] = useState([]);
   const [filter, setFilter] = useState({ natural: false, social: false });
   const [loading, setLoading] = useState(true);
   const { user, userLoading } = useUser();
-  const userId = user?.id;
   const navigate = useNavigate();
 
-
   useEffect(() => {
-    const url = userId
-      ? `/api/courses?userId=${userId}`
-      : `/api/courses`;
+    if (userLoading) return;
 
-    fetch(url)
-      .then(res => res.json())
+    apiFetch("/courses")
       .then(data => {
         setCourses(data);
         setLoading(false);
@@ -27,7 +23,7 @@ function Course() {
         console.error(err);
         setLoading(false);
       });
-  }, [userId]);
+  }, [userLoading, user]);
 
   function handleFilters(e) {
     const { name, checked } = e.target;
@@ -80,22 +76,12 @@ function Course() {
         <span className={styles.filterLabel}>Stream:</span>
 
         <label className={`${styles.filterChip} ${filter.social ? styles.filterChipActive : ""}`}>
-          <input
-            type="checkbox"
-            name="social"
-            checked={filter.social}
-            onChange={handleFilters}
-          />
+          <input type="checkbox" name="social" checked={filter.social} onChange={handleFilters} />
           Social
         </label>
 
         <label className={`${styles.filterChip} ${filter.natural ? styles.filterChipActive : ""}`}>
-          <input
-            type="checkbox"
-            name="natural"
-            checked={filter.natural}
-            onChange={handleFilters}
-          />
+          <input type="checkbox" name="natural" checked={filter.natural} onChange={handleFilters} />
           Natural
         </label>
       </div>

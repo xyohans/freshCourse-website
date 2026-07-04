@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../supabaseClient'
+import { supabase } from '../lib/supabaseClient'
 import styles from '../styles/auth.module.css'
 
 function AuthPage() {

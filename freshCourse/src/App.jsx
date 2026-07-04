@@ -15,6 +15,7 @@ import Profile from "./users/Profile"
 import { useUser } from "./context/AuthContext"
 import { AuthProvider } from "./context/AuthContext"
 import NotFound from './pages/NotFound'
+import ProtectedRoute from './protect-route/ProtectedRoute'
 
 
 function HomeRedirect() {
@@ -40,11 +41,11 @@ function App() {
         <Nav />
         <Routes>
           <Route path="/" element={<HomeRedirect />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/courses" element={<Courses />} />
-          <Route path="/courses/:courseKey" element={<CourseViewer />} />
-          <Route path="/exams/:courseKey" element={<ExamViewer />} />
-          <Route path="/exams/:courseKey/:paperId" element={<ExamRunner />} />
+          <Route path="/courses/:courseKey" element={<ProtectedRoute><CourseViewer /></ProtectedRoute>} />
+          <Route path="/exams/:courseKey" element={<ProtectedRoute><ExamViewer /></ProtectedRoute>} />
+          <Route path="/exams/:courseKey/:paperId" element={<ProtectedRoute><ExamRunner /></ProtectedRoute>} />
           <Route path="/exams" element={<Exams />} />         
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />

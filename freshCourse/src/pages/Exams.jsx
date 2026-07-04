@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from '../styles/exams.module.css';
 import { useUser } from '../context/AuthContext';
+import { apiFetch } from "../lib/apiFetch";
 
 function Exams() {
   const [courses, setCourses] = useState([]);
@@ -10,19 +11,17 @@ function Exams() {
   const { user } = useUser();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetch('/api/courses')
-      .then(res => res.json())
-      .then(data => {
-        setCourses(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
-  }, []);
-
+useEffect(() => {
+  apiFetch("/courses")
+    .then(data => {
+      setCourses(data);
+      setLoading(false);
+    })
+    .catch(err => {
+      console.error(err);
+      setLoading(false);
+    });
+}, []);
   function handleFilters(e) {
     const { name, checked } = e.target;
     setFilter(prev => ({ ...prev, [name]: checked }));

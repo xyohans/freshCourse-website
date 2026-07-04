@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import styles from "../styles/courses.module.css";
-import { useUser } from "../context/AuthContext"; 
+import { useUser } from "../context/AuthContext";
+import { apiFetch } from "../lib/apiFetch";
 
 function CourseViewer() {
   const { courseKey } = useParams();
@@ -14,7 +15,7 @@ function CourseViewer() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
-  const [contentLoading, setContentLoading] = useState(false); // NEW
+  const [contentLoading, setContentLoading] = useState(false);
   const [completedIds, setCompletedIds] = useState([]);
 
   const [sidebarOpen, setSidebarOpen] = useState(
@@ -22,26 +23,30 @@ function CourseViewer() {
   );
 
   const { user, userLoading } = useUser();
-  const userId = user?.id;
 
   useEffect(() => {
-    fetch(`/api/courses/${courseKey}`)
-      .then(res => res.json())
+    apiFetch(`/courses/${courseKey}`)
       .then(data => {
         setCourseName(data.title);
         setCourseId(data.id);
         setPdfUrl(data.pdf_url);
         setChapters(data.chapters);
         setLoading(false);
-      });
+      })
+      .catch(err => console.error(err));
   }, [courseKey]);
 
   useEffect(() => {
-    fetch(`/api/progress/${courseKey}?userId=${userId}`)
-      .then(res => res.json())
+    if (userLoading) return;
+    if (!user) {
+      setCompletedIds([]);
+      return;
+    }
+
+    apiFetch(`/progress/${courseKey}`)
       .then(ids => setCompletedIds(ids))
       .catch(err => console.error(err));
-  }, [courseKey]);
+  }, [courseKey, userLoading, user]);
 
   const allTopics = useMemo(() => {
     return chapters.flatMap(chapter =>
@@ -61,7 +66,6 @@ function CourseViewer() {
     }
   }, [currentTopic]);
 
-  // UPDATED: track contentLoading around the fetch
   useEffect(() => {
     if (!currentTopic) return;
 
@@ -71,7 +75,7 @@ function CourseViewer() {
     }
 
     setContent("");
-    setContentLoading(true); // NEW
+    setContentLoading(true);
 
     fetch(currentTopic.subtopic.content_url)
       .then(res => {
@@ -80,14 +84,13 @@ function CourseViewer() {
       })
       .then(text => {
         setContent(text);
-        setContentLoading(false); // NEW
+        setContentLoading(false);
       })
       .catch(err => {
         console.error("Failed to fetch content:", err);
         setContent("_Content not available yet._");
-        setContentLoading(false); // NEW
+        setContentLoading(false);
       });
-
   }, [currentTopic]);
 
   function handleTopicClick(subtopicId, chapterId) {
@@ -109,25 +112,23 @@ function CourseViewer() {
   }
 
   async function markComplete() {
-    if (!currentTopic || !courseId) return;
+    if (!currentTopic || !courseId || !user) return;
     const subtopicId = currentTopic.subtopic.id;
 
     if (completedIds.includes(subtopicId)) return;
 
     try {
-      await fetch('/api/progress/mark', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, subtopicId, courseId })
+      await apiFetch("/progress/mark", {
+        method: "POST",
+        body: JSON.stringify({ subtopicId, courseId }),
       });
       setCompletedIds(prev => [...prev, subtopicId]);
     } catch (err) {
-      console.error('Failed to mark complete:', err);
+      console.error("Failed to mark complete:", err);
     }
   }
 
-  // UPDATED: full skeleton screen instead of plain text
-  if (loading) {
+  if (loading || userLoading) {
     return (
       <div className={styles.container}>
         <div className={styles.skeletonSidebar}>
@@ -155,7 +156,6 @@ function CourseViewer() {
   const totalTopics = allTopics.length;
   const doneCount = allTopics.filter(t => completedIds.includes(t.subtopic.id)).length;
   const percent = totalTopics > 0 ? Math.round((doneCount / totalTopics) * 100) : 0;
-  const isCurrentDone = currentTopic && completedIds.includes(currentTopic.subtopic.id);
 
   return (
     <div className={styles.container}>
@@ -168,10 +168,7 @@ function CourseViewer() {
       </button>
 
       {sidebarOpen && (
-        <div
-          className={styles.backdrop}
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className={styles.backdrop} onClick={() => setSidebarOpen(false)} />
       )}
 
       <div className={`${styles.sidebar} ${!sidebarOpen ? styles.sidebarClosed : ""}`}>
@@ -186,10 +183,7 @@ function CourseViewer() {
             key={chapter.id}
             className={`${styles.chapter} ${openChapter.includes(chapter.id) ? styles.open : ""}`}
           >
-            <p
-              className={styles["chapter-title"]}
-              onClick={() => toggleChapter(chapter.id)}
-            >
+            <p className={styles["chapter-title"]} onClick={() => toggleChapter(chapter.id)}>
               {chapter.title}
               <span className={styles.arrow}>&#9662;</span>
             </p>
@@ -225,7 +219,6 @@ function CourseViewer() {
             <p className={styles.chapterLabel}>{currentTopic.chapterTitle}</p>
             <h3>{currentTopic.subtopic.title}</h3>
             {contentLoading ? (
-              // NEW: spinner while topic content fetches
               <div className={styles.contentLoading}>
                 <div className={styles.spinner} />
                 <span>Loading content…</span>
@@ -238,10 +231,7 @@ function CourseViewer() {
           <p>Click on a topic to view its content</p>
         )}
         <div className={styles.navButtons}>
-          <button
-            onClick={() => setCurrentIndex(i => i - 1)}
-            disabled={currentIndex === 0}
-          >
+          <button onClick={() => setCurrentIndex(i => i - 1)} disabled={currentIndex === 0}>
             Back
           </button>
           <button
