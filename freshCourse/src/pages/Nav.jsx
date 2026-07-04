@@ -4,6 +4,7 @@ import { HiOutlineMenu, HiOutlineX } from "react-icons/hi";
 import styles from "../styles/nav.module.css";
 import { useUser } from "../context/AuthContext";
 import { supabase } from "../lib/supabaseClient";
+import logo from "../assets/favicon.ico";
 
 function Nav() {
   const { user, userLoading } = useUser();
@@ -55,7 +56,8 @@ function Nav() {
         <Link to="/" className={styles.brandSection}>
           <img
             className={styles.logo}
-            src="https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=64&h=64&fit=crop"
+            // src="https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=64&h=64&fit=crop"
+            src={logo}
             alt="Fresh Course logo"
           />
           <span className={styles.brandName}>Fresh Course</span>
