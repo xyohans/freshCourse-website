@@ -16,6 +16,10 @@ import { useUser } from "./context/AuthContext"
 import { AuthProvider } from "./context/AuthContext"
 import NotFound from './pages/NotFound'
 import ProtectedRoute from './protect-route/ProtectedRoute'
+import About from './pages/About'
+import Contact from './pages/Contact'
+import Privacy from './pages/Privacy'
+
 
 
 function HomeRedirect() {
@@ -52,6 +56,9 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="*" element={<NotFound />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/privacy" element={<Privacy />} />
         </Routes>
         <ConditionalFooter />
       </Router>

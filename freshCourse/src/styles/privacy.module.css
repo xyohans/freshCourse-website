@@ -1,0 +1,83 @@
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 20px 80px;
+}
+
+.header {
+  margin-bottom: 40px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #eee;
+}
+
+.pageTitle {
+  font-size: 24px;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 6px;
+}
+
+.pageSub {
+  font-size: 13px;
+  color: #999;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111;
+}
+
+.body {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.8;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: #555;
+  line-height: 1.6;
+}
+
+.bullet {
+  width: 6px;
+  height: 6px;
+  background: #4caf50;
+  border-radius: 50%;
+  margin-top: 7px;
+  flex-shrink: 0;
+}
+
+.link {
+  color: #4caf50;
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
