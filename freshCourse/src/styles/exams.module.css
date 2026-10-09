@@ -506,6 +506,10 @@
   color: #6b6b66;
   margin-bottom: 24px;
 }
+.viewBtnDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 /* ── Skeleton loading ───────────────────────────────────── */
 
 .skeletonLine {

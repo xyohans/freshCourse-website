@@ -11,17 +11,17 @@ function Exams() {
   const { user } = useUser();
   const navigate = useNavigate();
 
-useEffect(() => {
-  apiFetch("/courses")
-    .then(data => {
-      setCourses(data);
-      setLoading(false);
-    })
-    .catch(err => {
-      console.error(err);
-      setLoading(false);
-    });
-}, []);
+  useEffect(() => {
+    apiFetch("/courses")
+      .then(data => {
+        setCourses(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
   function handleFilters(e) {
     const { name, checked } = e.target;
     setFilter(prev => ({ ...prev, [name]: checked }));
@@ -40,6 +40,7 @@ useEffect(() => {
     if (course.stream === 'both') return true;
     return filter[course.stream];
   });
+  const COMING_SOON = true;
 
   if (loading) {
     return (
@@ -94,8 +95,12 @@ useEffect(() => {
             <div key={course.route_key} className={styles.card}>
               <span className={`${styles.streamTag} ${tagClass}`}>{tagLabel}</span>
               <p className={styles.courseTitle}>{course.title}</p>
-              <button className={styles.viewBtn} onClick={() => handleViewExams(course)}>
-                View exams
+              <button
+                className={`${styles.viewBtn} ${COMING_SOON ? styles.viewBtnDisabled : ''}`}
+                onClick={() => !COMING_SOON && handleViewExams(course)}
+                disabled={COMING_SOON}
+              >
+                {COMING_SOON ? 'Coming soon' : 'View exams'}
               </button>
             </div>
           );
